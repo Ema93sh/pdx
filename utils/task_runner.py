@@ -6,7 +6,7 @@ from torch.optim import Adam
 from torch.autograd import Variable
 import torch.nn.functional as F
 import torch.nn as nn
-from replay_memory import ReplayMemory, Transition
+from .replay_memory import ReplayMemory, Transition
 
 
 class TaskRunner(object):
@@ -120,7 +120,7 @@ class TaskRunner(object):
 
             for step in range(max_steps):
                 q_values = self.model(state).data
-                action =  q_values.max(1)[1].view(1, 1)
+                action  =  q_values.max(1)[1].view(1, 1)
 
                 next_state, reward, done, info = self.env.step(int(action))
                 total_reward += reward

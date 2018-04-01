@@ -3,10 +3,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 
-class DQNModel(nn.Module):
+class QModel(nn.Module):
     """Model for DQN"""
     def __init__(self, input_size, action_size):
-        super(DQNModel, self).__init__()
+        super(QModel, self).__init__()
         self.input_size = input_size
         self.action_size = action_size
         self.fc1 = nn.Linear(input_size, 50)
@@ -19,7 +19,7 @@ class DQNModel(nn.Module):
         return x
 
     def clone(self):
-        model = DQNModel(self.input_size, self.action_size)
+        model = QModel(self.input_size, self.action_size)
         model.load_state_dict(self.state_dict())
         return model
 
