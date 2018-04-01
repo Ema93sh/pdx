@@ -53,7 +53,7 @@ class DecomposedQTaskRunner(object):
                 action = self.select_action(state)
 
                 next_state, reward, done, info = self.env.step(int(action))
-                total_reward += reward
+                total_reward += sum(reward)
 
                 reward = torch.FloatTensor([reward])
 
@@ -104,7 +104,7 @@ class DecomposedQTaskRunner(object):
 
         q_next = (1 - done_batch) * q_next
 
-        target_q_values = reward_batch + self.discount_factor * q_next
+        target_q_values = reward_batch.t() + self.discount_factor * q_next
 
         target_q_values = Variable(target_q_values.data)
 
@@ -130,7 +130,7 @@ class DecomposedQTaskRunner(object):
                 action  = cominded_q_values.data.max(1)[1]
 
                 next_state, reward, done, info = self.env.step(int(action))
-                total_reward += reward
+                total_reward += sum(reward)
                 state = Variable(torch.Tensor(next_state.tolist())).unsqueeze(0)
 
                 if done:

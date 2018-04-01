@@ -28,6 +28,7 @@ class FruitCollection1D:
         self.step_reward = 0
         self.fruit_collected = 0
         self.get_action_meanings = ['Right', 'Left']
+        self.reward_types = self.total_fruits
 
     def __move(self, action):
         agent_pos = None
