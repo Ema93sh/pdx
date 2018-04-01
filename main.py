@@ -23,19 +23,26 @@ def get_model(env, decompose):
         model = QModel(len(state), env.action_space)
     return model
 
-def get_task_runner(env, model, decompose):
-    if decompose:
-        return DecomposedQTaskRunner(env, model)
+def get_task_runner(env, model, args):
+    if args.decompose:
+        return DecomposedQTaskRunner(env, model, learning_rate = args.lr,
+                                                 replay_capacity = args.replay_capacity,
+                                                 batch_size = args.batch_size,
+                                                 discount_factor = args.gamma)
 
-    return TaskRunner(env, model)
+    return TaskRunner(env, model, learning_rate = args.lr,
+                                 replay_capacity = args.replay_capacity,
+                                 batch_size = args.batch_size,
+                                 discount_factor = args.gamma)
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Run PDX!')
 
-    parser.add_argument('--gamma', type=float, default=0.95, metavar='G', help='discount factor (default: 0.99)')
+    parser.add_argument('--gamma', type=float, default=0.99, metavar='G', help='discount factor (default: 0.99)')
     parser.add_argument('--seed', type=int, default=10, metavar='N', help='random seed (default: 10)')
     parser.add_argument('--render', action='store_true', default=False, help='render the environment')
-    parser.add_argument('--batch_size', type=int, default=10, help='Batch Size(No. of Episodes) for Training')
+    parser.add_argument('--batch_size', type=int, default=35, help='Batch Size(No. of Episodes) for Training')
+    parser.add_argument('--replay_capacity', type=int, default=5000, help='Size of Experience replay')
     parser.add_argument('--log-interval', type=int, default=5,
                         help='interval between training status logs (default: 5)')
     parser.add_argument('--no_cuda', action='store_true', default=False, help='Disables Cuda Usage')
@@ -44,7 +51,7 @@ if __name__ == '__main__':
     parser.add_argument('--train_episodes', type=int, default=500, help='Episode count for training')
     parser.add_argument('--test_episodes', type=int, default=100, help='Episode count for testing')
     parser.add_argument('--max_steps', type=int, default=100, help='Max steps per episode')
-    parser.add_argument('--lr', type=float, default=0.001, help='Learning Rate for Training (Adam Optimizer)')
+    parser.add_argument('--lr', type=float, default=0.01, help='Learning Rate for Training (Adam Optimizer)')
     parser.add_argument('--scratch', action='store_true', default=False,
                         help='Train the network from scratch ( or Does not load pre-trained model)')
     parser.add_argument('--env', default="FruitCollection1D",
@@ -61,7 +68,7 @@ if __name__ == '__main__':
 
     model = get_model(env, args.decompose)
 
-    task_runner = get_task_runner(env, model, args.decompose)
+    task_runner = get_task_runner(env, model, args)
 
     task_runner.train(training_episodes = args.train_episodes, max_steps = args.max_steps)
 
