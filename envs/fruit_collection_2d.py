@@ -11,7 +11,7 @@ class FruitCollection2D:
     def __init__(self, vis=None, hybrid=False):
         self.total_fruits = 10
         self.visible_fruits = 5
-        self.total_actions = 4
+        self.action_space = 4
         self._fruit_consumed = None
         self._agent_position = None
         self.name = 'FruitCollection2D'
@@ -50,8 +50,8 @@ class FruitCollection2D:
             return False
 
     def step(self, action):
-        if action >= self.total_actions:
-            raise ValueError("action must be one of %r" % range(self.total_actions))
+        if action >= self.action_space:
+            raise ValueError("action must be one of %r" % range(self.action_space))
         if self.hybrid:
             # reward = [0 if consumed else 1 for consumed in self._fruit_consumed]
             reward = [0 for _ in range(self.total_fruits)]
