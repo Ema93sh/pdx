@@ -14,8 +14,10 @@ def get_env(args):
         "FruitCollection1D": FruitCollection1D,
         "FruitCollection2D": FruitCollection2D
     }
+
     env = env_map[args.env](hybrid = args.decompose)
     return env
+
 
 def get_model(env, args):
     state = env.reset()

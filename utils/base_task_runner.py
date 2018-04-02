@@ -17,6 +17,7 @@ class BaseTaskRunner(object):
         self.log_interval = config["log_interval"]
         self.replay_memory = ReplayMemory(self.replay_capacity)
         self.file_name = config["file_name"]
+        self.summaries = {}
 
 
     def save(self):
@@ -24,3 +25,9 @@ class BaseTaskRunner(object):
             cwd = os.getcwd()
             network_path = os.path.join(cwd, "results/saved_models", self.file_name)
             torch.save(self.model.state_dict(), network_path)
+
+    def summary_log(self, step, tag, value):
+        if tag in self.summaries:
+            self.summaries[tag].append((step, value))
+        else:
+            self.summaries[tag] = [(step, value)]

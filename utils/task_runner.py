@@ -62,9 +62,13 @@ class TaskRunner(BaseTaskRunner):
                 #TODO Generate plots!
 
                 if done:
+                    self.summary_log(self.global_steps, "Total Reward", total_reward)
+                    self.summary_log(self.global_steps, "Total Step", step + 1)
+
                     if self.global_steps % self.log_interval == 0:
                         print("Training Episode %d total reward %d with steps %d" % (episode+1, total_reward, step + 1))
                     break
+
         self.save()
 
 
