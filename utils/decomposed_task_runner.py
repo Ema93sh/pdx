@@ -118,29 +118,30 @@ class DecomposedQTaskRunner(BaseTaskRunner):
         self.model.eval()
         if render:
             info_text_box = None
+            info_box_opts = dict(title="Info Box")
             q_box = None
             q_box_opts = dict(
                 title='Q Values',
-                rownames=['A-' + str(i) for i in range(self.env.action_space)]
+                rownames=['A' + str(i) for i in range(self.env.action_space)]
             )
             decomposed_q_box = None
             decomposed_q_box_opts = dict(
                 title='Decomposed Q Values',
                 stacked=False,
-                legend=['R-' + str(i) for i in range(self.env.reward_types)],
-                rownames=['A-' + str(i) for i in range(self.env.action_space)]
+                legend=['R' + str(i) for i in range(self.env.reward_types)],
+                rownames=['A' + str(i) for i in range(self.env.action_space)]
             )
             pdx_box = None
             pdx_box_opts = dict(
                 title='PDX',
                 stacked=False,
-                legend=['R-' + str(i) for i in range(self.env.reward_types)],
+                legend=['R' + str(i) for i in range(self.env.reward_types)],
             )
             pdx_contribution_box = None
             cont_pdx_box_opts = dict(
                 title='PDX Contribution(%)',
                 stacked=False,
-                legend=['R-' + str(i) for i in range(self.env.reward_types)],
+                legend=['R' + str(i) for i in range(self.env.reward_types)],
             )
         explaination = Explanation()
         for episode in range(test_episodes):
@@ -169,9 +170,15 @@ class DecomposedQTaskRunner(BaseTaskRunner):
                     else:
                         self.viz.bar(X=q_values.T, opts=decomposed_q_box_opts, win=decomposed_q_box)
 
-                    pdx_box_opts['rownames'] = ['(A-' + str(action) + ',A-' + str(int(i)) + ')'
+                    pdx_box_opts['rownames'] = ['(A' + str(action) + ',A' + str(int(i)) + ')'
                                                 for i in range(self.env.action_space) if i != action]
-                    cont_pdx_box_opts['rownames'] = pdx_box_opts['rownames']
+                    if len(pdx_box_opts['rownames']) == 1:
+                        pdx_box_opts['title'] += '   ' + pdx_box_opts['rownames'][0]
+                        cont_pdx_box_opts['title'] += '   ' + pdx_box_opts['rownames'][0]
+                        pdx_box_opts.pop('rownames')
+                    else:
+                        cont_pdx_box_opts['rownames'] = pdx_box_opts['rownames']
+
                     _target_actions = [j for j in range(self.env.action_space) if j != action]
                     pdx, contribute = explaination.get_pdx(q_values, action, _target_actions)
 
@@ -183,6 +190,14 @@ class DecomposedQTaskRunner(BaseTaskRunner):
                         pdx_contribution_box = self.viz.bar(X=np.array(contribute).T, opts=cont_pdx_box_opts)
                     else:
                         self.viz.bar(X=np.array(contribute).T, opts=cont_pdx_box_opts, win=pdx_contribution_box)
+
+                    # js_injection = '<javascript>' \
+                    #                'document.querySelector("button[data-original-title=Repack]").click()' \
+                    #                '</javascript>'
+                    # if info_text_box is None:
+                    #     info_text_box = self.viz.text(js_injection, opts=info_box_opts)
+                    # else:
+                    #     self.viz.text(js_injection, win=info_text_box, opts=info_box_opts)
 
                     if done:
                         print("Test Episode %d total reward %d with steps %d" % (episode + 1, total_reward, step + 1))
