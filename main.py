@@ -104,4 +104,4 @@ if __name__ == '__main__':
     if not args.test:
         task_runner.train(training_episodes=args.train_episodes)
 
-    task_runner.test(test_episodes=args.test_episodes, render=args.render, sleep = args.sleep)
+    task_runner.test(test_episodes=args.test_episodes, render=args.render, sleep=args.sleep)

@@ -1,10 +1,9 @@
 import torch
 import random
 import math
-
+import time
 from torch.optim import Adam
 from torch.autograd import Variable
-import torch.nn.functional as F
 import torch.nn as nn
 from .replay_memory import ReplayMemory, Transition
 from .base_task_runner import BaseTaskRunner
@@ -109,7 +108,7 @@ class TaskRunner(BaseTaskRunner):
         self.optimizer.step()
 
 
-    def test(self, test_episodes= 100, max_steps = 100, render = False):
+    def test(self, test_episodes= 100, max_steps = 100, render = False,sleep=1):
         self.model.eval()
 
         for episode in range(test_episodes):
@@ -124,7 +123,8 @@ class TaskRunner(BaseTaskRunner):
                 next_state, reward, done, info = self.env.step(int(action))
                 total_reward += reward
                 state = Variable(torch.Tensor(next_state.tolist())).unsqueeze(0)
-
+                if render:
+                    time.sleep(1)
                 if done:
                     print("Test Episode %d total reward %d with steps %d" % (episode+1, total_reward, step + 1))
                     break
