@@ -125,15 +125,15 @@ class FruitCollection1D:
             opts = dict(title='{}    \tFruit Collected:{} Overall_Reward:{} Step Reward:{} Steps:{}'
                         .format(self.name, self.fruit_collected, round(self.game_score, 3), self.step_reward,
                                 self.curr_step_count),
-                        width=500, height=500)
+                        width=360, height=300)
             if self.__image_window is None:
                 self.__image_window = self.__vis.image(_obs_image, opts=opts)
             else:
                 self.__vis.image(_obs_image, opts=opts, win=self.__image_window)
-            if self.__linear_grid_window is None:
-                self.__linear_grid_window = self.__vis.text(self._get_observation().__str__())
-            else:
-                self.__vis.text(self._get_observation().__str__(), win=self.__linear_grid_window)
+            # if self.__linear_grid_window is None:
+            #     self.__linear_grid_window = self.__vis.text(self._get_observation().__str__())
+            # else:
+            #     self.__vis.text(self._get_observation().__str__(), win=self.__linear_grid_window)
         return _obs_image
 
 

@@ -31,6 +31,7 @@ class FruitCollection2D:
         self.step_reward = 0
         self.fruit_collected = 0
         self.get_action_meanings = ['Up', 'Right', 'Down', 'Left']
+        self.reward_types = self.total_fruits
 
     def __move(self, action):
         agent_pos = None
@@ -130,15 +131,11 @@ class FruitCollection2D:
             opts = dict(title='{}    \tFruit Collected:{} Overall_Reward:{} Step Reward:{} Steps:{}'
                         .format(self.name, self.fruit_collected, round(self.game_score, 3), self.step_reward,
                                 self.curr_step_count),
-                        width=400, height=400)
+                        width=360, height=350)
             if self.__image_window is None:
                 self.__image_window = self.__vis.image(_obs_image, opts=opts)
             else:
                 self.__vis.image(_obs_image, opts=opts, win=self.__image_window)
-            # if self.__linear_grid_window is None:
-            #     self.__linear_grid_window = self.__vis.text(self._get_observation().__str__())
-            # else:
-            #     self.__vis.text(self._get_observation().__str__(), win=self.__linear_grid_window)
         return _obs_image
 
 

@@ -9,13 +9,13 @@ from utils.task_runner import TaskRunner
 from utils.decomposed_task_runner import DecomposedQTaskRunner
 
 
-def get_env(args):
+def get_env(args, viz):
     env_map = {
         "FruitCollection1D": FruitCollection1D,
         "FruitCollection2D": FruitCollection2D
     }
 
-    env = env_map[args.env](hybrid=args.decompose)
+    env = env_map[args.env](hybrid=args.decompose, vis=viz)
     return env
 
 
@@ -90,7 +90,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     viz = visdom.Visdom() if args.render else None
 
-    env = get_env(args)
+    env = get_env(args, viz=viz)
 
     state = env.reset()
 
