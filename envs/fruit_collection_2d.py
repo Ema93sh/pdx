@@ -83,8 +83,26 @@ class FruitCollection2D:
         return np.concatenate((grid.reshape(self.grid_size[0] * self.grid_size[1]), fruit_vector))
 
     def reset(self):
-        self.game_score = 0
+        self.total_fruits = 10
+        self.visible_fruits = 5
+        self.action_space = 4
+        self._fruit_consumed = None
+        self._agent_position = None
+        self.name = 'FruitCollection2D'
+        self.grid_size = (10, 10)
+        self.max_steps = 200
         self.curr_step_count = 0
+        self._fruit_positions = [(1, 0), (3, 1), (8, 2), (2, 3), (5, 4), (1, 5), (6, 6), (9, 7), (5, 8), (1, 9)]
+        self._agent_position = [2, 2]
+        self.__image_window = None
+        self.reward_threshold = 10  # optimal reward possible
+        self.game_score = 0
+        self.__linear_grid_window = None
+        self.step_reward = 0
+        self.fruit_collected = 0
+        self.get_action_meanings = ['Up', 'Right', 'Down', 'Left']
+        self.reward_types = self.total_fruits
+
         available_fruits_loc = random.sample(range(self.total_fruits), self.visible_fruits)
         self._fruit_consumed = [(False if (i in available_fruits_loc) else True) for i in range(self.total_fruits)]
         # while True:

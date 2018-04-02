@@ -99,6 +99,10 @@ if __name__ == '__main__':
 
     model = get_model(env, args)
 
+    if not args.no_cuda and torch.cuda.is_available():
+        model = model.cuda()
+
+
     task_runner = get_task_runner(env, model, args, viz=viz)
 
     if not args.test:
