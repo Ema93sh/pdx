@@ -73,6 +73,7 @@ if __name__ == '__main__':
     parser.add_argument('--log-interval', type=int, default=5,
                         help='interval between training status logs (default: 5)')
     parser.add_argument('--no_cuda', action='store_true', default=False, help='Disables Cuda Usage')
+    parser.add_argument('--test', action='store_true', default=False, help='Disables Cuda Usage')
 
     # Reinforcement Config
     parser.add_argument('--gamma', type=float, default=0.99, metavar='G', help='discount factor (default: 0.99)')
@@ -100,6 +101,7 @@ if __name__ == '__main__':
 
     task_runner = get_task_runner(env, model, args, viz=viz)
 
-    task_runner.train(training_episodes=args.train_episodes)
+    if not args.test:
+        task_runner.train(training_episodes=args.train_episodes)
 
-    task_runner.test(test_episodes=args.test_episodes, render=args.render)
+    task_runner.test(test_episodes=args.test_episodes, render=args.render, sleep = args.sleep)

@@ -1,4 +1,5 @@
 import torch
+import time
 import random
 import math
 import numpy as np
@@ -112,7 +113,7 @@ class DecomposedQTaskRunner(BaseTaskRunner):
 
         self.optimizer.step()
 
-    def test(self, test_episodes=100, max_steps=100, render=False):
+    def test(self, test_episodes=100, max_steps=100, render=False, sleep=1):
         self.model.eval()
         if render:
             info_text_box = None
@@ -200,6 +201,8 @@ class DecomposedQTaskRunner(BaseTaskRunner):
                     #     info_text_box = self.viz.text(js_injection, opts=info_box_opts)
                     # else:
                     #     self.viz.text(js_injection, win=info_text_box, opts=info_box_opts)
+
+                    time.sleep(sleep)
 
                     if done:
                         print("Test Episode %d total reward %d with steps %d" % (episode + 1, total_reward, step + 1))

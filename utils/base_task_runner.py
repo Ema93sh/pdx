@@ -49,4 +49,4 @@ class BaseTaskRunner(object):
             plt.title(title)
             plt.savefig(os.path.join(plots_dir_path, title + ".png"))
             plt.clf()
-            print('Plot Saved! for %s' % title)
+            
