@@ -15,7 +15,7 @@ from .base_task_runner import BaseTaskRunner
 class DecomposedQTaskRunner(BaseTaskRunner):
     """Training and evaluation for decomposed Q learning"""
 
-    def __init__(self, env, model, config):
+    def __init__(self, env, model, config,viz=None):
         super(DecomposedQTaskRunner, self).__init__(config)
         self.env = env
         self.model = model
@@ -24,6 +24,7 @@ class DecomposedQTaskRunner(BaseTaskRunner):
         self.replay_memory = ReplayMemory(self.replay_capacity)
         self.optimizer = Adam(self.model.parameters(), lr = self.learning_rate)
         self.loss_fn = nn.SmoothL1Loss()
+        self.viz = viz
 
 
     def select_action(self, state):
@@ -118,6 +119,16 @@ class DecomposedQTaskRunner(BaseTaskRunner):
 
     def test(self, test_episodes= 100, max_steps = 100, render = False):
         self.model.eval()
+        if render:
+            info_text_box = None
+            decomposed_q_box = None
+            decomposed_q_box_opts = dict(
+                title='Decomposed Q Values',
+                stacked=False,
+                legend=['The Netherlands', 'France', 'United States']
+            )
+            pdx_box = None
+            pdx_contribution_box = None
 
         for episode in range(test_episodes):
             state = self.env.reset()
@@ -131,7 +142,11 @@ class DecomposedQTaskRunner(BaseTaskRunner):
                 next_state, reward, done, info = self.env.step(int(action))
                 total_reward += sum(reward)
                 state = Variable(torch.Tensor(next_state.tolist())).unsqueeze(0)
-
+                if render:
+                    if decomposed_q_box is None:
+                        decomposed_q_box = self.viz.bar(X=np.random.rand(20, 3), opts=decomposed_q_box_opts)
+                    else:
+                        self.viz.bar(X=np.random.rand(20, 3), opts=decomposed_q_box_opts, win=decomposed_q_box)
                 if done:
                     print("Test Episode %d total reward %d with steps %d" % (episode+1, total_reward, step + 1))
                     break

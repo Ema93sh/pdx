@@ -1,7 +1,7 @@
 import argparse
 import torch
 import os
-
+import visdom
 from envs import FruitCollection1D, FruitCollection2D
 from models.q_model import QModel
 from models.decomposed_q_model import DecomposedQModel
@@ -15,7 +15,7 @@ def get_env(args):
         "FruitCollection2D": FruitCollection2D
     }
 
-    env = env_map[args.env](hybrid = args.decompose)
+    env = env_map[args.env](hybrid=args.decompose)
     return env
 
 
@@ -28,34 +28,34 @@ def get_model(env, args):
 
     if args.load:
         cwd = os.getcwd()
-        file_name =  "%s_%s_.torch" %(env.name, "decompose" if args.decompose else "simple")
+        file_name = "%s_%s_.torch" % (env.name, "decompose" if args.decompose else "simple")
         network_path = os.path.join(cwd, "results/saved_models", file_name)
         model.load_state_dict(torch.load(network_path))
     return model
 
-def get_task_runner(env, model, args):
-    file_name =  "%s_%s_.torch" %(env.name, "decompose" if args.decompose else "simple")
+
+def get_task_runner(env, model, args, viz=None):
+    file_name = "%s_%s_.torch" % (env.name, "decompose" if args.decompose else "simple")
 
     config = {
-                "learning_rate": args.lr,
-                "replay_capacity": args.replay_capacity,
-                "batch_size": args.batch_size,
-                "discount_factor": args.gamma,
-                "save_model": args.save,
-                "decay_rate": args.decay_rate,
-                "update_steps": args.update_steps,
-                "log_interval": args.log_interval,
-                "file_name": file_name
-            }
+        "learning_rate": args.lr,
+        "replay_capacity": args.replay_capacity,
+        "batch_size": args.batch_size,
+        "discount_factor": args.gamma,
+        "save_model": args.save,
+        "decay_rate": args.decay_rate,
+        "update_steps": args.update_steps,
+        "log_interval": args.log_interval,
+        "file_name": file_name
+    }
 
     if args.decompose:
-        return DecomposedQTaskRunner(env, model, config)
+        return DecomposedQTaskRunner(env, model, config, viz=viz)
 
-    return TaskRunner(env, model, config)
+    return TaskRunner(env, model, config, viz=viz)
 
 
 if __name__ == '__main__':
-
     parser = argparse.ArgumentParser(description='Run PDX!')
 
     # Evaluation Config
@@ -72,9 +72,6 @@ if __name__ == '__main__':
                         help='interval between training status logs (default: 5)')
     parser.add_argument('--no_cuda', action='store_true', default=False, help='Disables Cuda Usage')
 
-
-
-
     # Reinforcement Config
     parser.add_argument('--gamma', type=float, default=0.99, metavar='G', help='discount factor (default: 0.99)')
     parser.add_argument('--batch-size', type=int, default=35, help='Batch Size(No. of Episodes) for Training')
@@ -84,17 +81,14 @@ if __name__ == '__main__':
 
     parser.add_argument('--lr', type=float, default=0.01, help='Learning Rate for Training (Adam Optimizer)')
 
-
     # Network Config
     parser.add_argument('--load', action='store_true', default=False,
                         help='Train the network from scratch ( or Does not load pre-trained model)')
     parser.add_argument('--save', action='store_true', default=False,
                         help='Save the model after training')
 
-
-
-
     args = parser.parse_args()
+    viz = visdom.Visdom() if args.render else None
 
     env = get_env(args)
 
@@ -102,9 +96,8 @@ if __name__ == '__main__':
 
     model = get_model(env, args)
 
-    task_runner = get_task_runner(env, model, args)
+    task_runner = get_task_runner(env, model, args, viz=viz)
 
-    task_runner.train(training_episodes = args.train_episodes, max_steps = args.max_steps)
+    # task_runner.train(training_episodes=args.train_episodes, max_steps=args.max_steps)
 
-
-    task_runner.test(test_episodes = args.test_episodes, max_steps = args.max_steps, render = args.render)
+    task_runner.test(test_episodes=args.test_episodes, max_steps=args.max_steps, render=args.render)

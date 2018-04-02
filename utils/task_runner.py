@@ -126,4 +126,4 @@ class TaskRunner(BaseTaskRunner):
                 if done:
                     print("Test Episode %d total reward %d with steps %d" % (episode+1, total_reward, step + 1))
                     break
-        pass
+
