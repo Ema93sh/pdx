@@ -120,6 +120,7 @@ class DecomposedQTaskRunner(BaseTaskRunner):
             info_text_box = None
             info_box_opts = dict(title="Info Box")
             q_box = None
+            q_box_title = 'Q Values'
             q_box_opts = dict(
                 title='Q Values',
                 rownames=['A' + str(i) for i in range(self.env.action_space)]
@@ -137,7 +138,9 @@ class DecomposedQTaskRunner(BaseTaskRunner):
                 stacked=False,
                 legend=['R' + str(i) for i in range(self.env.reward_types)],
             )
+            pdx_box_title = 'PDX'
             pdx_contribution_box = None
+            pdx_contribution_box_title = 'PDX Contribution(%)'
             cont_pdx_box_opts = dict(
                 title='PDX Contribution(%)',
                 stacked=False,
@@ -159,7 +162,7 @@ class DecomposedQTaskRunner(BaseTaskRunner):
                 state = Variable(torch.Tensor(next_state.tolist())).unsqueeze(0)
                 if render:
                     self.env.render()
-                    q_box_opts['title'] += '- (Selected Action:' + str(action) + ')'
+                    q_box_opts['title'] = q_box_title + '- (Selected Action:' + str(action) + ')'
                     if q_box is None:
                         q_box = self.viz.bar(X=cominded_q_values.data.numpy()[0], opts=q_box_opts)
                     else:
@@ -173,8 +176,8 @@ class DecomposedQTaskRunner(BaseTaskRunner):
                     pdx_box_opts['rownames'] = ['(A' + str(action) + ',A' + str(int(i)) + ')'
                                                 for i in range(self.env.action_space) if i != action]
                     if len(pdx_box_opts['rownames']) == 1:
-                        pdx_box_opts['title'] += '   ' + pdx_box_opts['rownames'][0]
-                        cont_pdx_box_opts['title'] += '   ' + pdx_box_opts['rownames'][0]
+                        pdx_box_opts['title'] = pdx_box_title + '    ' + pdx_box_opts['rownames'][0]
+                        cont_pdx_box_opts['title'] = pdx_contribution_box_title + '   ' + pdx_box_opts['rownames'][0]
                         pdx_box_opts.pop('rownames')
                     else:
                         cont_pdx_box_opts['rownames'] = pdx_box_opts['rownames']
