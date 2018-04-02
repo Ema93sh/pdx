@@ -7,26 +7,19 @@ from torch.autograd import Variable
 import torch.nn.functional as F
 import torch.nn as nn
 from .replay_memory import ReplayMemory, Transition
+from .base_task_runner import BaseTaskRunner
 
-
-class TaskRunner(object):
+class TaskRunner(BaseTaskRunner):
     """Class that runs the task"""
 
-    def __init__(self, env, model, learning_rate = 0.01, replay_capacity = 5000, batch_size = 35, discount_factor = 0.99):
-        super(TaskRunner, self).__init__()
+    def __init__(self, env, model, config):
+        super(TaskRunner, self).__init__(config)
         self.env = env
         self.model = model
+        self.action_space = env.action_space
         self.target_model = model.clone()
-        self.replay_memory = ReplayMemory(replay_capacity)
-        self.optimizer = Adam(self.model.parameters(), lr=learning_rate)
-        self.batch_size = batch_size
-        self.discount_factor = discount_factor
+        self.optimizer = Adam(self.model.parameters(), lr = self.learning_rate)
         self.loss_fn = nn.SmoothL1Loss()
-        self.global_steps = 0
-        self.decay_rate = 10
-        self.update_steps = 40
-        self.log_steps = 20
-
 
     def select_action(self, state):
         sample = random.random()
@@ -35,7 +28,7 @@ class TaskRunner(object):
             q_values = self.model(state).data
             return q_values.max(1)[1].view(1, 1)
         else:
-            return torch.LongTensor([[random.randrange(2)]])
+            return torch.LongTensor([[random.randrange(self.action_space)]])
 
     def train(self, training_episodes = 5000, max_steps = 10000):
         self.model.train()
@@ -69,10 +62,10 @@ class TaskRunner(object):
                 #TODO Generate plots!
 
                 if done:
-                    if self.global_steps % self.log_steps == 0:
+                    if self.global_steps % self.log_interval == 0:
                         print("Training Episode %d total reward %d with steps %d" % (episode+1, total_reward, step + 1))
                     break
-
+        self.save()
 
 
     def update_model(self):

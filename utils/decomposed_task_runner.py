@@ -7,27 +7,23 @@ from torch.optim import Adam
 from torch.autograd import Variable
 import torch.nn.functional as F
 import torch.nn as nn
+
 from .replay_memory import ReplayMemory, Transition
+from .base_task_runner import BaseTaskRunner
 
 
-class DecomposedQTaskRunner(object):
+class DecomposedQTaskRunner(BaseTaskRunner):
     """Training and evaluation for decomposed Q learning"""
 
-    def __init__(self, env, model, learning_rate = 0.01, replay_capacity = 5000, batch_size = 35, discount_factor = 0.99):
-        super(DecomposedQTaskRunner, self).__init__()
+    def __init__(self, env, model, config):
+        super(DecomposedQTaskRunner, self).__init__(config)
         self.env = env
-        self.action_space = env.action_space
         self.model = model
+        self.action_space = env.action_space
         self.target_model = model.clone()
-        self.replay_memory = ReplayMemory(replay_capacity)
-        self.optimizer = Adam(self.model.parameters(), lr=learning_rate)
-        self.batch_size = batch_size
-        self.discount_factor = discount_factor
+        self.replay_memory = ReplayMemory(self.replay_capacity)
+        self.optimizer = Adam(self.model.parameters(), lr = self.learning_rate)
         self.loss_fn = nn.SmoothL1Loss()
-        self.global_steps = 0
-        self.decay_rate = 20
-        self.update_steps = 40
-        self.log_steps = 20
 
 
     def select_action(self, state):
@@ -71,11 +67,11 @@ class DecomposedQTaskRunner(object):
                 #TODO Generate plots!
 
                 if done:
-                    if self.global_steps % self.log_steps == 0:
+                    if self.global_steps % self.log_interval == 0:
                         print("Training Episode %d total reward %d with steps %d" % (episode+1, total_reward, step + 1))
                     break
 
-
+        self.save()
 
     def update_model(self):
         if len(self.replay_memory) < self.batch_size:
