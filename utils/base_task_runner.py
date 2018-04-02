@@ -1,6 +1,7 @@
 import os
 import torch
 
+import matplotlib.pyplot as plt
 from .replay_memory import ReplayMemory, Transition
 
 class BaseTaskRunner(object):
@@ -18,6 +19,7 @@ class BaseTaskRunner(object):
         self.replay_memory = ReplayMemory(self.replay_capacity)
         self.file_name = config["file_name"]
         self.summaries = {}
+        self.plot_path = config["plot_path"]
 
 
     def save(self):
@@ -27,7 +29,24 @@ class BaseTaskRunner(object):
             torch.save(self.model.state_dict(), network_path)
 
     def summary_log(self, step, tag, value):
+        #TODO get the labels for x and y valuess
         if tag in self.summaries:
             self.summaries[tag].append((step, value))
         else:
             self.summaries[tag] = [(step, value)]
+
+    def plot_summaries(self):
+        cwd = os.getcwd()
+        plots_dir_path = os.path.join(cwd, self.plot_path)
+        if not os.path.exists(plots_dir_path):
+            os.makedirs(plots_dir_path)
+
+        for title, values in self.summaries.items():
+            x_values = list(map(lambda x: x[0], values))
+            y_values = list(map(lambda x: x[1], values))
+            plt.plot(x_values, y_values)
+            plt.grid(True)
+            plt.title(title)
+            plt.savefig(os.path.join(plots_dir_path, title + ".png"))
+            plt.clf()
+            print('Plot Saved! for %s' % title)

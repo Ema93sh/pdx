@@ -36,6 +36,7 @@ def get_model(env, args):
 
 def get_task_runner(env, model, args, viz=None):
     file_name = "%s_%s_.torch" % (env.name, "decompose" if args.decompose else "simple")
+    plot_path = "results/%s/%s" % (env.name, "decompose" if args.decompose else "non_decompose")
 
     config = {
         "learning_rate": args.lr,
@@ -46,7 +47,8 @@ def get_task_runner(env, model, args, viz=None):
         "decay_rate": args.decay_rate,
         "update_steps": args.update_steps,
         "log_interval": args.log_interval,
-        "file_name": file_name
+        "file_name": file_name,
+        "plot_path": plot_path
     }
 
     if args.decompose:
@@ -61,8 +63,8 @@ if __name__ == '__main__':
     # Evaluation Config
     parser.add_argument('--seed', type=int, default=10, metavar='N', help='random seed (default: 10)')
     parser.add_argument('--render', action='store_true', default=False, help='render the environment')
-    parser.add_argument('--train_episodes', type=int, default=500, help='Episode count for training')
-    parser.add_argument('--test_episodes', type=int, default=100, help='Episode count for testing')
+    parser.add_argument('--train-episodes', type=int, default=500, help='Episode count for training')
+    parser.add_argument('--test-episodes', type=int, default=100, help='Episode count for testing')
     parser.add_argument('--max_steps', type=int, default=100, help='Max steps per episode')
     parser.add_argument('--env', default="FruitCollection1D",
                         help='Train the network from scratch ( or Does not load pre-trained model)')
@@ -98,6 +100,6 @@ if __name__ == '__main__':
 
     task_runner = get_task_runner(env, model, args, viz=viz)
 
-    # task_runner.train(training_episodes=args.train_episodes, max_steps=args.max_steps)
+    task_runner.train(training_episodes=args.train_episodes)
 
-    task_runner.test(test_episodes=args.test_episodes, max_steps=args.max_steps, render=args.render)
+    task_runner.test(test_episodes=args.test_episodes, render=args.render)

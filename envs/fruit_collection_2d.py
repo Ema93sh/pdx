@@ -20,8 +20,6 @@ class FruitCollection2D:
         self.max_steps = 200
         self.curr_step_count = 0
         self._fruit_positions = [(1, 0), (3, 1), (8, 2), (2, 3), (5, 4), (1, 5), (6, 6), (9, 7), (5, 8), (1, 9)]
-        # self._fruit_positions = [(0, 0), (0, 5), (5, 0), (5, 5)]
-        # self._fruit_position_color = []
         self._agent_position = [2, 2]
         self.__vis = vis
         self.__image_window = None
@@ -86,6 +84,7 @@ class FruitCollection2D:
 
     def reset(self):
         self.game_score = 0
+        self.curr_step_count = 0
         available_fruits_loc = random.sample(range(self.total_fruits), self.visible_fruits)
         self._fruit_consumed = [(False if (i in available_fruits_loc) else True) for i in range(self.total_fruits)]
         # while True:
