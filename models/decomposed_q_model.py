@@ -11,9 +11,9 @@ class DecomposedQModel(nn.Module):
         self.input_size = input_size
         self.action_size = action_size
         for reward_type in range(self.reward_types):
-            network = nn.Sequential(nn.Linear(input_size, 250),
+            network = nn.Sequential(nn.Linear(input_size, 110),
                                   nn.ReLU(),
-                                  nn.Linear(250, action_size))
+                                  nn.Linear(110, action_size))
             setattr(self, 'q_{}_network'.format(reward_type), network)
 
     def forward(self, input):

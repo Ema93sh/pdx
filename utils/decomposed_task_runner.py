@@ -65,15 +65,13 @@ class DecomposedQTaskRunner(BaseTaskRunner):
                 if self.global_steps % self.update_steps == 0:
                     self.target_model.clone_from(self.model)
 
-                # TODO Generate plots!
-
+                #TODO Generate plots!
                 if done:
                     self.summary_log(self.global_steps, "Total Reward", total_reward)
                     self.summary_log(self.global_steps, "Total Step", step + 1)
-
                     if self.global_steps % self.log_interval == 0:
-                        print(
-                            "Training Episode %d total reward %d with steps %d" % (episode + 1, total_reward, step + 1))
+                        print("Training Episode %d total reward %d with steps %d" % (episode + 1, total_reward, step + 1))
+                        self.plot_summaries()
                     break
 
         self.save()
@@ -157,6 +155,7 @@ class DecomposedQTaskRunner(BaseTaskRunner):
                 next_state, reward, done, info = self.env.step(action)
                 total_reward += sum(reward)
                 state = Variable(torch.Tensor(next_state.tolist())).unsqueeze(0)
+
                 if render:
                     self.env.render()
                     q_box_opts['title'] += '- (Selected Action:' + str(action) + ')'

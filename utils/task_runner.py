@@ -12,10 +12,11 @@ from .base_task_runner import BaseTaskRunner
 class TaskRunner(BaseTaskRunner):
     """Class that runs the task"""
 
-    def __init__(self, env, model, config):
+    def __init__(self, env, model, config, viz = None):
         super(TaskRunner, self).__init__(config)
         self.env = env
         self.model = model
+        self.viz = viz
         self.action_space = env.action_space
         self.target_model = model.clone()
         self.optimizer = Adam(self.model.parameters(), lr = self.learning_rate)
@@ -62,11 +63,12 @@ class TaskRunner(BaseTaskRunner):
                 #TODO Generate plots!
 
                 if done:
-                    self.summary_log(self.global_steps, "Total Reward", total_reward)
-                    self.summary_log(self.global_steps, "Total Step", step + 1)
+                    self.summary_log(episode, "Total Reward", total_reward)
+                    self.summary_log(episode, "Total Step", step + 1)
 
                     if self.global_steps % self.log_interval == 0:
                         print("Training Episode %d total reward %d with steps %d" % (episode+1, total_reward, step + 1))
+                        self.plot_summaries()
                     break
 
         self.save()
@@ -126,4 +128,3 @@ class TaskRunner(BaseTaskRunner):
                 if done:
                     print("Test Episode %d total reward %d with steps %d" % (episode+1, total_reward, step + 1))
                     break
-
