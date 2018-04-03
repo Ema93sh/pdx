@@ -29,10 +29,19 @@ class DecomposedQTaskRunner(BaseTaskRunner):
         self.viz = viz
         self.query_states = query_states
 
-    def select_action(self, state):
+
+    def select_action(self, state, restart_epsilon = False):
         sample = random.random()
-        eps_threshold = 0 + (1.0 - 0.01) * math.exp(-1. * self.global_steps / self.decay_rate)
-        if sample > eps_threshold:
+        self.current_epsilon_step += 1
+
+        if restart_epsilon:
+            self.current_epsilon_step = 100
+
+        self.epsilon = np.max([0, self.starting_epsilon * (0.96 ** (self.current_epsilon_step / self.decay_rate))])
+
+        should_explore = np.random.choice([True, False],  p = [self.epsilon, 1 - self.epsilon])
+
+        if not should_explore:
             cominded_q_values, q_values = self.model(state)
             return cominded_q_values.data.max(1)[1]
         else:
@@ -40,7 +49,7 @@ class DecomposedQTaskRunner(BaseTaskRunner):
 
     def train(self, training_episodes=5000, max_steps=10000):
         self.model.train()
-
+        restart_epsilon = False
         for episode in range(training_episodes):
             state = self.env.reset()
             total_reward = 0
@@ -49,7 +58,8 @@ class DecomposedQTaskRunner(BaseTaskRunner):
             for step in range(max_steps):
                 self.global_steps += 1
 
-                action = self.select_action(state)
+                action = self.select_action(state, restart_epsilon)
+                restart_epsilon = False
 
                 next_state, reward, done, info = self.env.step(int(action))
                 total_reward += sum(reward)
@@ -67,36 +77,18 @@ class DecomposedQTaskRunner(BaseTaskRunner):
                 if self.global_steps % self.update_steps == 0:
                     self.target_model.clone_from(self.model)
 
+                if self.current_epsilon_step != 0 and self.restart_epsilon_steps != 0 and self.current_epsilon_step % self.restart_epsilon_steps == 0:
+                    self.generate_explanation(episode)
+                    restart_epsilon = True
+
                 if self.global_steps % self.save_steps == 0:
-                    print("Plotting!!! Saving!!!!!")
                     self.plot_summaries()
                     self.save()
 
-                    # Explanation
-                    explanation = Explanation()
-                    pdx_mse = 0
-                    for state_config in self.query_states:
-                        current_config = copy.deepcopy(state_config)
-
-                        state = self.env.reset(**current_config)
-                        state = Variable(torch.Tensor(state.tolist())).unsqueeze(0)
-
-                        cominded_q_values, _q_values = self.model(state)
-                        state_action = int(cominded_q_values.data.max(1)[1][0])
-                        _q_values = _q_values.data.numpy().squeeze(1)
-
-                        gt_q = explanation.gt_q_values(self.env, self.model, current_config, self.env.action_space,
-                                                       episodes=10)
-                        _target_actions = [i for i in range(self.env.action_space) if i != state_action]
-                        predict_x = explanation.get_pdx(_q_values, state_action, _target_actions)
-                        target_x = explanation.get_pdx(gt_q, state_action, _target_actions)
-                        pdx_mse += explanation.mse_pdx(predict_x, target_x)
-                    pdx_mse /= len(self.query_states)
-                    self.summary_log(self.global_steps, "MSE - PDX", pdx_mse)
-
                 if done:
-                    self.summary_log(self.global_steps, "Total Reward", total_reward)
-                    self.summary_log(self.global_steps, "Total Step", step + 1)
+                    self.summary_log(episode + 1, "Total Reward", total_reward)
+                    self.summary_log(episode + 1, "Epsilon", self.epsilon)
+                    self.summary_log(episode + 1, "Total Step", step + 1)
                     if episode % self.log_interval == 0:
                         print(
                             "Training Episode %d total reward %d with steps %d" % (episode + 1, total_reward, step + 1))
@@ -105,9 +97,34 @@ class DecomposedQTaskRunner(BaseTaskRunner):
         self.plot_summaries()
         self.save()
 
+    def generate_explanation(self, episode):
+        # Explanation
+        explanation = Explanation()
+        pdx_mse = 0
+        for state_config in self.query_states:
+            current_config = copy.deepcopy(state_config)
+
+            state = self.env.reset(**current_config)
+            state = Variable(torch.Tensor(state.tolist())).unsqueeze(0)
+
+            cominded_q_values, _q_values = self.model(state)
+            state_action = int(cominded_q_values.data.max(1)[1][0])
+            _q_values = _q_values.data.numpy().squeeze(1)
+
+            gt_q = explanation.gt_q_values(self.env, self.model, current_config, self.env.action_space,
+                                           episodes=10)
+
+            _target_actions = [i for i in range(self.env.action_space) if i != state_action]
+            predict_x = explanation.get_pdx(_q_values, state_action, _target_actions)
+            target_x = explanation.get_pdx(gt_q, state_action, _target_actions)
+            pdx_mse += explanation.mse_pdx(predict_x, target_x)
+        pdx_mse /= len(self.query_states)
+        self.summary_log(episode + 1, "MSE - PDX", pdx_mse)
+
+
     def update_model(self):
         if len(self.replay_memory) < self.batch_size:
-            return
+            return 0
 
         transitions = self.replay_memory.sample(self.batch_size)
         batch = Transition(*zip(*transitions))
@@ -134,12 +151,17 @@ class DecomposedQTaskRunner(BaseTaskRunner):
         target_q_values = Variable(target_q_values.data)
 
         loss = self.loss_fn(q_values, target_q_values)
+        update_start_time = time.time()
 
         self.optimizer.zero_grad()
 
         loss.backward()
 
         self.optimizer.step()
+
+        update_end_time = time.time()
+        return (update_end_time - update_start_time)
+
 
     def test(self, test_episodes=100, max_steps=100, render=False, sleep=1):
         self.model.eval()
@@ -150,14 +172,14 @@ class DecomposedQTaskRunner(BaseTaskRunner):
             q_box_title = 'Q Values'
             q_box_opts = dict(
                 title='Q Values',
-                rownames=['A' + str(i) for i in range(self.env.action_space)]
+                rownames=[action for action in self.env.get_action_meanings]
             )
             decomposed_q_box = None
             decomposed_q_box_opts = dict(
                 title='Decomposed Q Values',
                 stacked=False,
                 legend=['R' + str(i) for i in range(self.env.reward_types)],
-                rownames=['A' + str(i) for i in range(self.env.action_space)]
+                rownames=[action for action in self.env.get_action_meanings]
             )
             pdx_box = None
             pdx_box_opts = dict(
@@ -190,7 +212,7 @@ class DecomposedQTaskRunner(BaseTaskRunner):
 
                 if render:
                     self.env.render()
-                    q_box_opts['title'] = q_box_title + '- (Selected Action:' + str(action) + ')'
+                    q_box_opts['title'] = q_box_title + '- (Selected Action:' + str(self.env.get_action_meanings[action]) + ')'
                     if q_box is None:
                         q_box = self.viz.bar(X=cominded_q_values.data.numpy()[0], opts=q_box_opts)
                     else:
@@ -201,7 +223,7 @@ class DecomposedQTaskRunner(BaseTaskRunner):
                     else:
                         self.viz.bar(X=q_values.T, opts=decomposed_q_box_opts, win=decomposed_q_box)
 
-                    pdx_box_opts['rownames'] = ['(A' + str(action) + ',A' + str(int(i)) + ')'
+                    pdx_box_opts['rownames'] = ['(' + self.env.get_action_meanings[action] + ',' + self.env.get_action_meanings[i] + ')'
                                                 for i in range(self.env.action_space) if i != action]
                     if len(pdx_box_opts['rownames']) == 1:
                         pdx_box_opts['title'] = pdx_box_title + '    ' + pdx_box_opts['rownames'][0]

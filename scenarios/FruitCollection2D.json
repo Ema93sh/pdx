@@ -1,0 +1,28 @@
+[
+    {
+       "fruits_loc": [0, 2, 3, 6, 9],
+       "step_count": 0,
+       "agent_position": [4, 4],
+       "score": 0,
+       "step_reward": 0,
+       "fruit_collected": 0
+     },
+
+    {
+       "fruits_loc": [0, 2, 3, 6, 9],
+       "step_count": 0,
+       "agent_position": [0, 1],
+       "score": 0,
+       "step_reward": 0,
+       "fruit_collected": 0
+    },
+
+    {
+       "fruits_loc": [0, 2, 3, 6, 9],
+       "step_count": 0,
+       "agent_position": [0, 7],
+       "score": 0,
+       "step_reward": 0,
+       "fruit_collected": 0
+     }
+]

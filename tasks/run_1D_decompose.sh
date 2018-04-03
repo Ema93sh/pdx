@@ -1,8 +1,11 @@
 python main.py --env FruitCollection1D \
                --decompose \
                --log-interval 30  \
-               --decay-rate 20 \
+               --decay-rate 10 \
                --update-steps 50 \
                --replay-capacity 4000 \
-               --train-episodes 700 \
+               --train-episodes 5000 \
+               --save-steps 1000 \
+               --restart-epsilon-steps 1000 \
+               --scenarios-path "./scenarios/FruitCollection1D.json" \
                --save

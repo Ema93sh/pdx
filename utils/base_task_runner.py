@@ -21,6 +21,9 @@ class BaseTaskRunner(object):
         self.summaries = {}
         self.plot_path = config["plot_path"]
         self.save_steps = config["save_steps"]
+        self.current_epsilon_step = self.global_steps
+        self.starting_epsilon = 1.0
+        self.restart_epsilon_steps = config["restart_epsilon_steps"]
 
 
     def save(self):

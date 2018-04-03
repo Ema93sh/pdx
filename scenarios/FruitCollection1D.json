@@ -1,0 +1,9 @@
+[{
+		"fruits_loc": [1],
+		"step_count": 0,
+		"agent_position": [0, 4],
+		"score": 0,
+		"step_reward": 0,
+		"fruit_collected": 0
+	}
+]

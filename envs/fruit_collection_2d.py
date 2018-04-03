@@ -31,7 +31,7 @@ class FruitCollection2D:
         self.get_action_meanings = ['Up', 'Right', 'Down', 'Left']
         self.reward_types = self.total_fruits
 
-    def reset(self, fruits_loc=None, step_count=0, agent_position=[2, 2], score=0, step_reward=0, fruit_collected=0):
+    def reset(self, fruits_loc=None, step_count=0, agent_position=[4, 4], score=0, step_reward=0, fruit_collected=0):
         self.curr_step_count = step_count
         self._agent_position = agent_position
         self.game_score = score
@@ -64,10 +64,10 @@ class FruitCollection2D:
         if action >= self.action_space:
             raise ValueError("action must be one of %r" % range(self.action_space))
         if self.hybrid:
-            reward = [0 if consumed else -0.01 for consumed in self._fruit_consumed]
+            reward = [-0.01 for consumed in self._fruit_consumed]
             # reward = [0 for _ in range(self.total_fruits)]
         else:
-            reward = 0
+            reward = -0.01
         self.curr_step_count += 1
         if self.__move(action):
             if tuple(self._agent_position) in self._fruit_positions:
@@ -75,7 +75,7 @@ class FruitCollection2D:
                 if not self._fruit_consumed[idx]:
                     self._fruit_consumed[idx] = True
                     if self.hybrid:
-                        reward[idx] = 1
+                        reward[idx] = 2
                     else:
                         reward = 1
                     self.fruit_collected += 1

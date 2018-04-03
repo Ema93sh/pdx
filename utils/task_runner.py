@@ -21,14 +21,22 @@ class TaskRunner(BaseTaskRunner):
         self.optimizer = Adam(self.model.parameters(), lr = self.learning_rate)
         self.loss_fn = nn.SmoothL1Loss()
 
-    def select_action(self, state):
+    def select_action(self, state, restart_epsilon = False):
         sample = random.random()
-        eps_threshold = 0 + (1.0 - 0.01) * math.exp(-1. * self.global_steps / self.decay_rate)
-        if sample > eps_threshold:
-            q_values = self.model(state).data
-            return q_values.max(1)[1].view(1, 1)
+        self.current_epsilon_step += 1
+
+        if restart_epsilon:
+            self.current_epsilon_step = 100
+
+        self.epsilon = np.max([0, self.starting_epsilon * (0.96 ** (self.current_epsilon_step / self.decay_rate))])
+
+        should_explore = np.random.choice([True, False],  p = [self.epsilon, 1 - self.epsilon])
+
+        if not should_explore:
+            cominded_q_values, q_values = self.model(state)
+            return cominded_q_values.data.max(1)[1]
         else:
-            return torch.LongTensor([[random.randrange(self.action_space)]])
+            return torch.LongTensor([random.randrange(self.action_space)])
 
     def train(self, training_episodes = 5000, max_steps = 10000):
         self.model.train()

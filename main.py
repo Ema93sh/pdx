@@ -2,6 +2,7 @@ import argparse
 import torch
 import os
 import visdom
+import json
 from envs import FruitCollection1D, FruitCollection2D
 
 from models.q_model import QModel
@@ -18,19 +19,15 @@ def get_env(args, viz):
         "FruitCollection1D": FruitCollection1D,
         "FruitCollection2D": FruitCollection2D
     }
-    query_map = {
-        "FruitCollection1D": [{"fruits_loc": [1],
-                               "step_count": 0,
-                               "agent_position": [0, 4],
-                               "score": 0,
-                               "step_reward": 0,
-                               "fruit_collected": 0
-                               }],
-        "FruitCollection2D": []
-    }
+
+    scenarios = []
+
+    if not args.test:
+        scenarios = json.load(open(args.scenarios_path))
 
     env = env_map[args.env](hybrid=args.decompose, vis=viz)
-    return env, query_map[args.env]
+
+    return env, scenarios
 
 
 def get_model(env, args):
@@ -52,6 +49,8 @@ def get_task_runner(env, model, args, query_states, viz=None):
     file_name = "%s_%s_.torch" % (env.name, "decompose" if args.decompose else "simple")
     plot_path = "results/%s/%s" % (env.name, "decompose" if args.decompose else "non_decompose")
 
+    plot_path = args.plot_path if args.plot_path != "" else plot_path
+
     config = {
         "learning_rate": args.lr,
         "replay_capacity": args.replay_capacity,
@@ -63,7 +62,8 @@ def get_task_runner(env, model, args, query_states, viz=None):
         "log_interval": args.log_interval,
         "file_name": file_name,
         "plot_path": plot_path,
-        "save_steps": args.save_steps
+        "save_steps": args.save_steps,
+        "restart_epsilon_steps": args.restart_epsilon_steps
     }
 
     if args.decompose:
@@ -90,6 +90,8 @@ if __name__ == '__main__':
     parser.add_argument('--no_cuda', action='store_true', default=False, help='Disables Cuda Usage')
     parser.add_argument('--test', action='store_true', default=False, help='Disables Cuda Usage')
     parser.add_argument('--save-steps', type=int, default=1000, help='Will save after n steps')
+    parser.add_argument('--restart-epsilon-steps', type=int, default=0, help='Will restart epsilon after n steps. If 0 no restart')
+    parser.add_argument('--plot-path', type=str, default="", help='Path to save all the plots')
 
     # Reinforcement Config
     parser.add_argument('--gamma', type=float, default=0.99, metavar='G', help='discount factor (default: 0.99)')
@@ -105,6 +107,11 @@ if __name__ == '__main__':
                         help='Train the network from scratch ( or Does not load pre-trained model)')
     parser.add_argument('--save', action='store_true', default=False,
                         help='Save the model after training')
+
+    # Explanation Config
+    parser.add_argument('--scenarios-path', type=str, default="",
+                        help='Path to scenarios. Will run all the scenarios')
+
 
     args = parser.parse_args()
     viz = visdom.Visdom() if args.render else None
@@ -123,17 +130,18 @@ if __name__ == '__main__':
     if not args.test:
         task_runner.train(training_episodes=args.train_episodes)
 
-    # task_runner.test(test_episodes=args.test_episodes, render=args.render, sleep=args.sleep)
+    task_runner.test(test_episodes=args.test_episodes, render=args.render, sleep=args.sleep)
 
-    explanation = Explanation()
-    state_config = {
-        "fruits_loc": [1],
-        "step_count": 0,
-        "agent_position": [0, 4],
-        "score": 0,
-        "step_reward": 0,
-        "fruit_collected": 0
-    }
-
-    gtx = explanation.gt_q_values(env, model, state_config, env.action_space, episodes=100)
-    print(gtx)
+    #
+    # explanation = Explanation()
+    # state_config = {
+    #     "fruits_loc": [1],
+    #     "step_count": 0,
+    #     "agent_position": [0, 4],
+    #     "score": 0,
+    #     "step_reward": 0,
+    #     "fruit_collected": 0
+    # }
+    #
+    # gtx = explanation.gt_q_values(env, model, state_config, env.action_space, episodes=100)
+    # print(gtx)
