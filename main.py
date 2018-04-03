@@ -18,9 +18,19 @@ def get_env(args, viz):
         "FruitCollection1D": FruitCollection1D,
         "FruitCollection2D": FruitCollection2D
     }
+    query_map = {
+        "FruitCollection1D": [{"fruits_loc": [1],
+                               "step_count": 0,
+                               "agent_position": [0, 4],
+                               "score": 0,
+                               "step_reward": 0,
+                               "fruit_collected": 0
+                               }],
+        "FruitCollection2D": []
+    }
 
     env = env_map[args.env](hybrid=args.decompose, vis=viz)
-    return env
+    return env, query_map[args.env]
 
 
 def get_model(env, args):
@@ -38,7 +48,7 @@ def get_model(env, args):
     return model
 
 
-def get_task_runner(env, model, args, viz=None):
+def get_task_runner(env, model, args, query_states, viz=None):
     file_name = "%s_%s_.torch" % (env.name, "decompose" if args.decompose else "simple")
     plot_path = "results/%s/%s" % (env.name, "decompose" if args.decompose else "non_decompose")
 
@@ -57,9 +67,9 @@ def get_task_runner(env, model, args, viz=None):
     }
 
     if args.decompose:
-        return DecomposedQTaskRunner(env, model, config, viz=viz)
+        return DecomposedQTaskRunner(env, model, config, query_states, viz=viz)
 
-    return TaskRunner(env, model, config, viz=viz)
+    return TaskRunner(env, model, config, query_states, viz=viz)
 
 
 if __name__ == '__main__':
@@ -99,7 +109,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     viz = visdom.Visdom() if args.render else None
 
-    env = get_env(args, viz=viz)
+    env, query_states_config = get_env(args, viz=viz)
 
     state = env.reset()
 
@@ -108,22 +118,22 @@ if __name__ == '__main__':
     if args.cuda:
         model = model.cuda()
 
-    task_runner = get_task_runner(env, model, args, viz=viz)
-    #
-    # if not args.test:
-    #     task_runner.train(training_episodes=args.train_episodes)
-    #
-    # task_runner.test(test_episodes=args.test_episodes, render=args.render, sleep=args.sleep)
+    task_runner = get_task_runner(env, model, args, query_states_config, viz=viz)
 
-    explanation = Explanation()
-    state_config = {
-        "fruits_loc": [1],
-        "step_count": 0,
-        "agent_position": [0, 4],
-        "score": 0,
-        "step_reward": 0,
-        "fruit_collected": 0
-    }
+    if not args.test:
+        task_runner.train(training_episodes=args.train_episodes)
 
-    gtx = explanation.gt_q_values(env, model, state_config, env.action_space, episodes=100)
-    print(gtx)
+    task_runner.test(test_episodes=args.test_episodes, render=args.render, sleep=args.sleep)
+
+    # explanation = Explanation()
+    # state_config = {
+    #     "fruits_loc": [1],
+    #     "step_count": 0,
+    #     "agent_position": [0, 4],
+    #     "score": 0,
+    #     "step_reward": 0,
+    #     "fruit_collected": 0
+    # }
+    #
+    # gtx = explanation.gt_q_values(env, model, state_config, env.action_space, episodes=100)
+    # print(gtx)

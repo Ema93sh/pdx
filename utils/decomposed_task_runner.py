@@ -3,7 +3,7 @@ import time
 import random
 import math
 import numpy as np
-
+import copy
 from torch.optim import Adam
 from torch.autograd import Variable
 import torch.nn.functional as F
@@ -17,7 +17,7 @@ from explanations import Explanation
 class DecomposedQTaskRunner(BaseTaskRunner):
     """Training and evaluation for decomposed Q learning"""
 
-    def __init__(self, env, model, config, viz=None):
+    def __init__(self, env, model, config, query_states=[], viz=None):
         super(DecomposedQTaskRunner, self).__init__(config)
         self.env = env
         self.model = model
@@ -27,6 +27,7 @@ class DecomposedQTaskRunner(BaseTaskRunner):
         self.optimizer = Adam(self.model.parameters(), lr=self.learning_rate)
         self.loss_fn = nn.SmoothL1Loss()
         self.viz = viz
+        self.query_states = query_states
 
     def select_action(self, state):
         sample = random.random()
@@ -71,11 +72,34 @@ class DecomposedQTaskRunner(BaseTaskRunner):
                     self.plot_summaries()
                     self.save()
 
+                    # Explanation
+                    explanation = Explanation()
+                    pdx_mse = 0
+                    for state_config in self.query_states:
+                        current_config = copy.deepcopy(state_config)
+
+                        state = self.env.reset(**current_config)
+                        state = Variable(torch.Tensor(state.tolist())).unsqueeze(0)
+
+                        cominded_q_values, _q_values = self.model(state)
+                        state_action = int(cominded_q_values.data.max(1)[1][0])
+                        _q_values = _q_values.data.numpy().squeeze(1)
+
+                        gt_q = explanation.gt_q_values(self.env, self.model, current_config, self.env.action_space,
+                                                       episodes=10)
+                        _target_actions = [i for i in range(self.env.action_space) if i != state_action]
+                        predict_x = explanation.get_pdx(_q_values, state_action, _target_actions)
+                        target_x = explanation.get_pdx(gt_q, state_action, _target_actions)
+                        pdx_mse += explanation.mse_pdx(predict_x, target_x)
+                    pdx_mse /= len(self.query_states)
+                    self.summary_log(self.global_steps, "MSE - PDX", pdx_mse)
+
                 if done:
                     self.summary_log(self.global_steps, "Total Reward", total_reward)
                     self.summary_log(self.global_steps, "Total Step", step + 1)
                     if episode % self.log_interval == 0:
-                        print("Training Episode %d total reward %d with steps %d" % (episode + 1, total_reward, step + 1))
+                        print(
+                            "Training Episode %d total reward %d with steps %d" % (episode + 1, total_reward, step + 1))
                     break
 
         self.plot_summaries()
