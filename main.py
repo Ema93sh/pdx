@@ -12,6 +12,7 @@ from explanations import Explanation
 
 from torch.autograd import Variable
 
+
 def get_env(args, viz):
     env_map = {
         "FruitCollection1D": FruitCollection1D,
@@ -101,28 +102,26 @@ if __name__ == '__main__':
     state = env.reset()
 
     model = get_model(env, args)
-
-    if not args.no_cuda and torch.cuda.is_available():
+    args.cuda = args.no_cuda and torch.cuda.is_available()
+    if args.cuda:
         model = model.cuda()
 
-
     task_runner = get_task_runner(env, model, args, viz=viz)
-
-    if not args.test:
-        task_runner.train(training_episodes=args.train_episodes)
-
-    task_runner.test(test_episodes=args.test_episodes, render=args.render, sleep=args.sleep)
-
-
-    # explanation = Explanation()
-    # state_config = {
-    #     "fruits_loc": [1],
-    #     "step_count": 0,
-    #     "agent_position": [0, 4],
-    #     "score": 0,
-    #     "step_reward": 0,
-    #     "fruit_collected": 0
-    # }
     #
-    # gtx = explanation.get_gtx(env, model, state_config, env.action_space, episodes = 100)
-    # print(gtx)
+    # if not args.test:
+    #     task_runner.train(training_episodes=args.train_episodes)
+    #
+    # task_runner.test(test_episodes=args.test_episodes, render=args.render, sleep=args.sleep)
+
+    explanation = Explanation()
+    state_config = {
+        "fruits_loc": [1],
+        "step_count": 0,
+        "agent_position": [0, 4],
+        "score": 0,
+        "step_reward": 0,
+        "fruit_collected": 0
+    }
+
+    gtx = explanation.gt_q_values(env, model, state_config, env.action_space, episodes=100)
+    print(gtx)

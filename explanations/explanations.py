@@ -3,6 +3,7 @@ import torch
 import copy
 from torch.autograd import Variable
 
+
 class Explanation(object):
     """Explanation class related to generating explanations"""
 
@@ -35,16 +36,15 @@ class Explanation(object):
                         for r in range(len(q_values))]
         return pdx, contribution
 
-    def get_gtx(self, env, model, state_config, action_space, episodes = 1):
-        """Estimate the ground truth for state and actions"""
+    def gt_q_values(self, env, model, state_config, action_space, episodes=1):
+        """Estimate the ground truth Q-Values for a given state and it's action space"""
 
         expected_q_values = []
         for episode in range(episodes):
             current_config = copy.deepcopy(state_config)
-            state = env.reset(**current_config)
-            state = Variable(torch.Tensor(state.tolist())).unsqueeze(0)
+            _ = env.reset(**current_config)
             episode_reward = []
-        
+
             for action in range(action_space):
                 rewards = []
                 state, reward, done, info = env.step(action)
@@ -52,8 +52,7 @@ class Explanation(object):
 
                 while not done:
                     state = Variable(torch.Tensor(state.tolist())).unsqueeze(0)
-                    cominded_q_values, q_values = model(state)
-                    q_values = q_values.squeeze(1).data.numpy()
+                    cominded_q_values, _ = model(state)
                     action = int(cominded_q_values.data.max(1)[1])
 
                     state, reward, done, info = env.step(action)
@@ -68,6 +67,17 @@ class Explanation(object):
         q_values = expected_q_values.mean(1)
 
         return q_values
+
+    def mse_pdx(self, prediction_x, target_x):
+        """Mean Square Error between Predicted and Target explanations
+
+        >>> Explanation().mse_pdx([[0, 0], [1, 2]],[[0, 0], [1, 2]])
+        0.0
+        >>> Explanation().mse_pdx([[3, -2], [1, 2]],[[0, 0], [1, 2]])
+        3.25
+        """
+
+        return np.square(np.subtract(prediction_x, target_x)).mean()
 
 
 if __name__ == '__main__':

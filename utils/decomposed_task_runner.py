@@ -66,7 +66,7 @@ class DecomposedQTaskRunner(BaseTaskRunner):
                 if self.global_steps % self.update_steps == 0:
                     self.target_model.clone_from(self.model)
 
-                #TODO Generate plots!
+                # TODO Generate plots!
                 if done:
                     self.summary_log(self.global_steps, "Total Reward", total_reward)
                     self.summary_log(self.global_steps, "Total Step", step + 1)
