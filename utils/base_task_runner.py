@@ -20,6 +20,7 @@ class BaseTaskRunner(object):
         self.file_name = config["file_name"]
         self.summaries = {}
         self.plot_path = config["plot_path"]
+        self.save_steps = config["save_steps"]
 
 
     def save(self):
@@ -49,4 +50,3 @@ class BaseTaskRunner(object):
             plt.title(title)
             plt.savefig(os.path.join(plots_dir_path, title + ".png"))
             plt.clf()
-            

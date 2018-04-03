@@ -42,9 +42,8 @@ class Explanation(object):
         for episode in range(episodes):
             current_config = copy.deepcopy(state_config)
             state = env.reset(**current_config)
-            state = Variable(torch.Tensor(state.tolist())).unsqueeze(0)
             episode_reward = []
-        
+
             for action in range(action_space):
                 rewards = []
                 state, reward, done, info = env.step(action)
@@ -52,8 +51,7 @@ class Explanation(object):
 
                 while not done:
                     state = Variable(torch.Tensor(state.tolist())).unsqueeze(0)
-                    cominded_q_values, q_values = model(state)
-                    q_values = q_values.squeeze(1).data.numpy()
+                    cominded_q_values, _ = model(state)
                     action = int(cominded_q_values.data.max(1)[1])
 
                     state, reward, done, info = env.step(action)

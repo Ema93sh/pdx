@@ -51,7 +51,8 @@ def get_task_runner(env, model, args, viz=None):
         "update_steps": args.update_steps,
         "log_interval": args.log_interval,
         "file_name": file_name,
-        "plot_path": plot_path
+        "plot_path": plot_path,
+        "save_steps": args.save_steps
     }
 
     if args.decompose:
@@ -77,6 +78,7 @@ if __name__ == '__main__':
                         help='interval between training status logs (default: 5)')
     parser.add_argument('--no_cuda', action='store_true', default=False, help='Disables Cuda Usage')
     parser.add_argument('--test', action='store_true', default=False, help='Disables Cuda Usage')
+    parser.add_argument('--save-steps', type=int, default=1000, help='Will save after n steps')
 
     # Reinforcement Config
     parser.add_argument('--gamma', type=float, default=0.99, metavar='G', help='discount factor (default: 0.99)')
