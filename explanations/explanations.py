@@ -42,10 +42,10 @@ class Explanation(object):
         expected_q_values = []
         for episode in range(episodes):
             current_config = copy.deepcopy(state_config)
-            _ = env.reset(**current_config)
             episode_reward = []
 
             for action in range(action_space):
+                _ = env.reset(**current_config)
                 rewards = []
                 state, reward, done, info = env.step(action)
                 rewards.append(reward)
@@ -66,7 +66,7 @@ class Explanation(object):
 
         q_values = expected_q_values.mean(1)
 
-        return q_values
+        return q_values.T
 
     def mse_pdx(self, prediction_x, target_x):
         """Mean Square Error between Predicted and Target explanations
