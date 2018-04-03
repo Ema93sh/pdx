@@ -19,7 +19,7 @@ class BaseTaskRunner(object):
         self.replay_memory = ReplayMemory(self.replay_capacity)
         self.file_name = config["file_name"]
         self.summaries = {}
-        self.plot_path = config["plot_path"]
+        self.result_path = config["result_path"]
         self.save_steps = config["save_steps"]
         self.current_epsilon_step = self.global_steps
         self.starting_epsilon = 1.0
@@ -29,7 +29,8 @@ class BaseTaskRunner(object):
     def save(self):
         if self.save_model and self.file_name:
             cwd = os.getcwd()
-            network_path = os.path.join(cwd, "results/saved_models", self.file_name)
+            network_path = self.result_path if self.result_path != "" else "results/saved_models"
+            network_path = os.path.join(cwd, network_path, self.file_name)
             torch.save(self.model.state_dict(), network_path)
 
     def summary_log(self, step, tag, value):
@@ -41,7 +42,7 @@ class BaseTaskRunner(object):
 
     def plot_summaries(self):
         cwd = os.getcwd()
-        plots_dir_path = os.path.join(cwd, self.plot_path)
+        plots_dir_path = os.path.join(cwd, self.result_path)
         if not os.path.exists(plots_dir_path):
             os.makedirs(plots_dir_path)
 

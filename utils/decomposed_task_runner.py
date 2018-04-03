@@ -78,10 +78,10 @@ class DecomposedQTaskRunner(BaseTaskRunner):
                     self.target_model.clone_from(self.model)
 
                 if self.current_epsilon_step != 0 and self.restart_epsilon_steps != 0 and self.current_epsilon_step % self.restart_epsilon_steps == 0:
-                    self.generate_explanation(episode)
                     restart_epsilon = True
 
                 if self.global_steps % self.save_steps == 0:
+                    self.generate_explanation(episode)
                     self.plot_summaries()
                     self.save()
 
@@ -107,11 +107,11 @@ class DecomposedQTaskRunner(BaseTaskRunner):
             state = self.env.reset(**current_config)
             state = Variable(torch.Tensor(state.tolist())).unsqueeze(0)
 
-            cominded_q_values, _q_values = self.model(state)
+            cominded_q_values, _q_values = self.target_model(state)
             state_action = int(cominded_q_values.data.max(1)[1][0])
             _q_values = _q_values.data.numpy().squeeze(1)
 
-            gt_q = explanation.gt_q_values(self.env, self.model, current_config, self.env.action_space,
+            gt_q = explanation.gt_q_values(self.env, self.target_model, current_config, self.env.action_space,
                                            episodes=10)
 
             _target_actions = [i for i in range(self.env.action_space) if i != state_action]

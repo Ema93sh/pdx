@@ -40,16 +40,17 @@ def get_model(env, args):
     if args.load:
         cwd = os.getcwd()
         file_name = "%s_%s_.torch" % (env.name, "decompose" if args.decompose else "simple")
-        network_path = os.path.join(cwd, "results/saved_models", file_name)
+        network_path = args.result_path if args.result_path != "" else "results/saved_models"
+        network_path = os.path.join(cwd, network_path, file_name)
         model.load_state_dict(torch.load(network_path))
     return model
 
 
 def get_task_runner(env, model, args, query_states, viz=None):
     file_name = "%s_%s_.torch" % (env.name, "decompose" if args.decompose else "simple")
-    plot_path = "results/%s/%s" % (env.name, "decompose" if args.decompose else "non_decompose")
+    result_path = "results/%s/%s" % (env.name, "decompose" if args.decompose else "non_decompose")
 
-    plot_path = args.plot_path if args.plot_path != "" else plot_path
+    result_path = args.result_path if args.result_path != "" else result_path
 
     config = {
         "learning_rate": args.lr,
@@ -61,7 +62,7 @@ def get_task_runner(env, model, args, query_states, viz=None):
         "update_steps": args.update_steps,
         "log_interval": args.log_interval,
         "file_name": file_name,
-        "plot_path": plot_path,
+        "result_path": result_path,
         "save_steps": args.save_steps,
         "restart_epsilon_steps": args.restart_epsilon_steps
     }
@@ -91,7 +92,7 @@ if __name__ == '__main__':
     parser.add_argument('--test', action='store_true', default=False, help='Disables Cuda Usage')
     parser.add_argument('--save-steps', type=int, default=1000, help='Will save after n steps')
     parser.add_argument('--restart-epsilon-steps', type=int, default=0, help='Will restart epsilon after n steps. If 0 no restart')
-    parser.add_argument('--plot-path', type=str, default="", help='Path to save all the plots')
+    parser.add_argument('--result-path', type=str, default="", help='Path to save all the plots and model')
 
     # Reinforcement Config
     parser.add_argument('--gamma', type=float, default=0.99, metavar='G', help='discount factor (default: 0.99)')
