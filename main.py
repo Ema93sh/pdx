@@ -3,11 +3,14 @@ import torch
 import os
 import visdom
 from envs import FruitCollection1D, FruitCollection2D
+
 from models.q_model import QModel
 from models.decomposed_q_model import DecomposedQModel
 from utils.task_runner import TaskRunner
 from utils.decomposed_task_runner import DecomposedQTaskRunner
+from explanations import Explanation
 
+from torch.autograd import Variable
 
 def get_env(args, viz):
     env_map = {
@@ -109,3 +112,17 @@ if __name__ == '__main__':
         task_runner.train(training_episodes=args.train_episodes)
 
     task_runner.test(test_episodes=args.test_episodes, render=args.render, sleep=args.sleep)
+
+
+    # explanation = Explanation()
+    # state_config = {
+    #     "fruits_loc": [1],
+    #     "step_count": 0,
+    #     "agent_position": [0, 4],
+    #     "score": 0,
+    #     "step_reward": 0,
+    #     "fruit_collected": 0
+    # }
+    #
+    # gtx = explanation.get_gtx(env, model, state_config, env.action_space, episodes = 100)
+    # print(gtx)

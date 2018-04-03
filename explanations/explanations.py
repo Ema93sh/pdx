@@ -1,5 +1,7 @@
 import numpy as np
-
+import torch
+import copy
+from torch.autograd import Variable
 
 class Explanation(object):
     """Explanation class related to generating explanations"""
@@ -32,6 +34,40 @@ class Explanation(object):
                          for target in range(len(target_actions))]
                         for r in range(len(q_values))]
         return pdx, contribution
+
+    def get_gtx(self, env, model, state_config, action_space, episodes = 1):
+        """Estimate the ground truth for state and actions"""
+
+        expected_q_values = []
+        for episode in range(episodes):
+            current_config = copy.deepcopy(state_config)
+            state = env.reset(**current_config)
+            state = Variable(torch.Tensor(state.tolist())).unsqueeze(0)
+            episode_reward = []
+        
+            for action in range(action_space):
+                rewards = []
+                state, reward, done, info = env.step(action)
+                rewards.append(reward)
+
+                while not done:
+                    state = Variable(torch.Tensor(state.tolist())).unsqueeze(0)
+                    cominded_q_values, q_values = model(state)
+                    q_values = q_values.squeeze(1).data.numpy()
+                    action = int(cominded_q_values.data.max(1)[1])
+
+                    state, reward, done, info = env.step(action)
+                    rewards.append(reward)
+
+                rewards = np.stack(rewards)
+                episode_reward.append(rewards.sum(0))
+
+            expected_q_values.append(episode_reward)
+        expected_q_values = np.stack(expected_q_values, 1)
+
+        q_values = expected_q_values.mean(1)
+
+        return q_values
 
 
 if __name__ == '__main__':
