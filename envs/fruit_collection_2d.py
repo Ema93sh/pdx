@@ -64,8 +64,8 @@ class FruitCollection2D:
         if action >= self.action_space:
             raise ValueError("action must be one of %r" % range(self.action_space))
         if self.hybrid:
-            # reward = [0 if consumed else 1 for consumed in self._fruit_consumed]
-            reward = [0 for _ in range(self.total_fruits)]
+            reward = [0 if consumed else -0.01 for consumed in self._fruit_consumed]
+            # reward = [0 for _ in range(self.total_fruits)]
         else:
             reward = 0
         self.curr_step_count += 1

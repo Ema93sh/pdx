@@ -66,15 +66,19 @@ class DecomposedQTaskRunner(BaseTaskRunner):
                 if self.global_steps % self.update_steps == 0:
                     self.target_model.clone_from(self.model)
 
-                # TODO Generate plots!
+                if self.global_steps % self.save_steps == 0:
+                    print("Plotting!!! Saving!!!!!")
+                    self.plot_summaries()
+                    self.save()
+
                 if done:
                     self.summary_log(self.global_steps, "Total Reward", total_reward)
                     self.summary_log(self.global_steps, "Total Step", step + 1)
-                    if self.global_steps % self.log_interval == 0:
+                    if episode % self.log_interval == 0:
                         print("Training Episode %d total reward %d with steps %d" % (episode + 1, total_reward, step + 1))
-                        self.plot_summaries()
                     break
 
+        self.plot_summaries()
         self.save()
 
     def update_model(self):
