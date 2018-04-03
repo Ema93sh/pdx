@@ -12,24 +12,36 @@ class FruitCollection2D:
         self.total_fruits = 10
         self.visible_fruits = 5
         self.action_space = 4
-        self._fruit_consumed = None
-        self._agent_position = None
         self.name = 'FruitCollection2D'
         self.hybrid = hybrid
         self.grid_size = (10, 10)
         self.max_steps = 200
-        self.curr_step_count = 0
-        self._fruit_positions = [(1, 0), (3, 1), (8, 2), (2, 3), (5, 4), (1, 5), (6, 6), (9, 7), (5, 8), (1, 9)]
-        self._agent_position = [2, 2]
-        self.__vis = vis
-        self.__image_window = None
         self.reward_threshold = 10  # optimal reward possible
-        self.game_score = 0
+        self.curr_step_count = None
+        self._fruit_consumed = None
+        self._agent_position = None
+        self._agent_position = None
+        self.game_score = None
+        self.step_reward = None
+        self.fruit_collected = None
+        self.__vis = vis
+        self._fruit_positions = [(1, 0), (3, 1), (8, 2), (2, 3), (5, 4), (1, 5), (6, 6), (9, 7), (5, 8), (1, 9)]
+        self.__image_window = None
         self.__linear_grid_window = None
-        self.step_reward = 0
-        self.fruit_collected = 0
         self.get_action_meanings = ['Up', 'Right', 'Down', 'Left']
         self.reward_types = self.total_fruits
+
+    def reset(self, fruits_loc=None, step_count=0, agent_position=[2, 2], score=0, step_reward=0, fruit_collected=0):
+        self.curr_step_count = step_count
+        self._agent_position = agent_position
+        self.game_score = score
+        self.step_reward = step_reward
+        self.fruit_collected = fruit_collected
+        available_fruits_loc = fruits_loc if fruits_loc is not None else random.sample(range(self.total_fruits),
+                                                                                       self.visible_fruits)
+        self._fruit_consumed = [(False if (i in available_fruits_loc) else True) for i in range(self.total_fruits)]
+        obs = self._get_observation()
+        return obs
 
     def __move(self, action):
         agent_pos = None
@@ -81,36 +93,6 @@ class FruitCollection2D:
         fruit_vector = np.zeros(self.total_fruits)
         fruit_vector[[not x for x in self._fruit_consumed]] = 1
         return np.concatenate((grid.reshape(self.grid_size[0] * self.grid_size[1]), fruit_vector))
-
-    def reset(self):
-        self.total_fruits = 10
-        self.visible_fruits = 5
-        self.action_space = 4
-        self._fruit_consumed = None
-        self._agent_position = None
-        self.name = 'FruitCollection2D'
-        self.grid_size = (10, 10)
-        self.max_steps = 200
-        self.curr_step_count = 0
-        self._fruit_positions = [(1, 0), (3, 1), (8, 2), (2, 3), (5, 4), (1, 5), (6, 6), (9, 7), (5, 8), (1, 9)]
-        self._agent_position = [2, 2]
-        self.__image_window = None
-        self.reward_threshold = 10  # optimal reward possible
-        self.game_score = 0
-        self.__linear_grid_window = None
-        self.step_reward = 0
-        self.fruit_collected = 0
-        self.get_action_meanings = ['Up', 'Right', 'Down', 'Left']
-        self.reward_types = self.total_fruits
-
-        available_fruits_loc = random.sample(range(self.total_fruits), self.visible_fruits)
-        self._fruit_consumed = [(False if (i in available_fruits_loc) else True) for i in range(self.total_fruits)]
-        # while True:
-        #     self._agent_position = [random.randint(0, 9), random.randint(0, 9)]
-        #     if tuple(self._agent_position) not in self._fruit_positions:
-        #         break
-        obs = self._get_observation()
-        return obs
 
     def close(self):
         if self.__vis is not None:
