@@ -107,16 +107,16 @@ class DecomposedQTaskRunner(BaseTaskRunner):
             state = self.env.reset(**current_config)
             state = Variable(torch.Tensor(state.tolist())).unsqueeze(0)
 
-            cominded_q_values, _q_values = self.target_model(state)
+            cominded_q_values, _q_values = self.model(state)
             state_action = int(cominded_q_values.data.max(1)[1][0])
             _q_values = _q_values.data.numpy().squeeze(1)
 
-            gt_q = explanation.gt_q_values(self.env, self.target_model, current_config, self.env.action_space,
+            gt_q = explanation.gt_q_values(self.env, self.model, current_config, self.env.action_space,
                                            episodes=10)
 
             _target_actions = [i for i in range(self.env.action_space) if i != state_action]
-            predict_x = explanation.get_pdx(_q_values, state_action, _target_actions)
-            target_x = explanation.get_pdx(gt_q, state_action, _target_actions)
+            predict_x, _ = explanation.get_pdx(_q_values, state_action, _target_actions)
+            target_x, _ = explanation.get_pdx(gt_q, state_action, _target_actions)
             pdx_mse += explanation.mse_pdx(predict_x, target_x)
         pdx_mse /= len(self.query_states)
         self.summary_log(episode + 1, "MSE - PDX", pdx_mse)

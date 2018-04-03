@@ -52,7 +52,11 @@ class Explanation(object):
 
                 while not done:
                     state = Variable(torch.Tensor(state.tolist())).unsqueeze(0)
-                    cominded_q_values, _ = model(state)
+                    cominded_q_values = model(state)
+
+                    if len(cominded_q_values) == 2: #TODO need a better way
+                        cominded_q_values = cominded_q_values[0]
+
                     action = int(cominded_q_values.data.max(1)[1])
 
                     state, reward, done, info = env.step(action)

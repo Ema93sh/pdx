@@ -2,16 +2,21 @@ import torch
 import random
 import math
 import time
+import copy
+
+import numpy as np
 from torch.optim import Adam
 from torch.autograd import Variable
 import torch.nn as nn
+
 from .replay_memory import ReplayMemory, Transition
 from .base_task_runner import BaseTaskRunner
+from explanations import Explanation
 
 class TaskRunner(BaseTaskRunner):
     """Class that runs the task"""
 
-    def __init__(self, env, model, config, viz = None):
+    def __init__(self, env, model, config, query_states=[], viz = None):
         super(TaskRunner, self).__init__(config)
         self.env = env
         self.model = model
@@ -20,6 +25,7 @@ class TaskRunner(BaseTaskRunner):
         self.target_model = model.clone()
         self.optimizer = Adam(self.model.parameters(), lr = self.learning_rate)
         self.loss_fn = nn.SmoothL1Loss()
+        self.query_states = query_states
 
     def select_action(self, state, restart_epsilon = False):
         sample = random.random()
@@ -33,14 +39,14 @@ class TaskRunner(BaseTaskRunner):
         should_explore = np.random.choice([True, False],  p = [self.epsilon, 1 - self.epsilon])
 
         if not should_explore:
-            cominded_q_values, q_values = self.model(state)
-            return cominded_q_values.data.max(1)[1]
+            cominded_q_values = self.model(state)
+            return cominded_q_values.data.max(1)[1].view(1, 1)
         else:
-            return torch.LongTensor([random.randrange(self.action_space)])
+            return torch.LongTensor([[random.randrange(self.action_space)]])
 
     def train(self, training_episodes = 5000, max_steps = 10000):
         self.model.train()
-
+        restart_epsilon = False
         for episode in range(training_episodes):
             state = self.env.reset()
             total_reward = 0
@@ -50,6 +56,7 @@ class TaskRunner(BaseTaskRunner):
                 self.global_steps += 1
 
                 action = self.select_action(state)
+                restart_epsilon = False
 
                 next_state, reward, done, info = self.env.step(int(action))
                 total_reward += reward
@@ -67,19 +74,50 @@ class TaskRunner(BaseTaskRunner):
                 if self.global_steps % self.update_steps == 0:
                     self.target_model.clone_from(self.model)
 
+                if self.current_epsilon_step != 0 and self.restart_epsilon_steps != 0 and self.current_epsilon_step % self.restart_epsilon_steps == 0:
+                    restart_epsilon = True
+
                 if self.global_steps % self.save_steps == 0:
-                    print("Plotting!!! Saving!!!!!")
+                    self.generate_explanation(episode)
                     self.plot_summaries()
                     self.save()
 
                 if done:
-                    self.summary_log(episode, "Total Reward", total_reward)
-                    self.summary_log(episode, "Total Step", step + 1)
+                    self.summary_log(episode + 1, "Total Reward", total_reward)
+                    self.summary_log(episode + 1, "Epsilon", self.epsilon)
+                    self.summary_log(episode + 1, "Total Step", step + 1)
                     if episode % self.log_interval == 0:
                         print("Training Episode %d total reward %d with steps %d" % (episode + 1, total_reward, step + 1))
                     break
+
         self.plot_summaries()
         self.save()
+
+    def generate_explanation(self, episode):
+        # Explanation
+        explanation = Explanation()
+        pdx_mse = 0
+        for state_config in self.query_states:
+            current_config = copy.deepcopy(state_config)
+
+            state = self.env.reset(**current_config)
+            state = Variable(torch.Tensor(state.tolist())).unsqueeze(0)
+
+            _q_values = self.model(state)
+            _q_values =_q_values.data
+            state_action = int(_q_values.max(1)[1][0])
+
+
+            gt_q = explanation.gt_q_values(self.env, self.model, current_config, self.env.action_space,
+                                           episodes=10)
+
+            _target_actions = [i for i in range(self.env.action_space) if i != state_action]
+            predict_x, _ = explanation.get_pdx(_q_values, state_action, _target_actions)
+            target_x, _ = explanation.get_pdx([gt_q], state_action, _target_actions)
+            pdx_mse += explanation.mse_pdx(predict_x, target_x)
+        pdx_mse /= len(self.query_states)
+        self.summary_log(episode + 1, "MSE - PDX", pdx_mse)
+
 
 
     def update_model(self):
