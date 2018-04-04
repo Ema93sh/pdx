@@ -184,14 +184,14 @@ class DecomposedQTaskRunner(BaseTaskRunner):
             decomposed_q_box_opts = dict(
                 title='Decomposed Q Values',
                 stacked=False,
-                legend=['R' + str(i) for i in range(self.env.reward_types)],
+                legend=[r_type for r_type in self.env.get_reward_meanings],
                 rownames=[action for action in self.env.get_action_meanings]
             )
             pdx_box = None
             pdx_box_opts = dict(
                 title='PDX',
                 stacked=False,
-                legend=['R' + str(i) for i in range(self.env.reward_types)],
+                legend=[r_type for r_type in self.env.get_reward_meanings],
             )
             pdx_box_title = 'PDX'
             pdx_contribution_box = None
@@ -199,7 +199,7 @@ class DecomposedQTaskRunner(BaseTaskRunner):
             cont_pdx_box_opts = dict(
                 title='PDX Contribution(%)',
                 stacked=False,
-                legend=['R' + str(i) for i in range(self.env.reward_types)],
+                legend=[r_type for r_type in self.env.get_reward_meanings],
             )
         explaination = Explanation()
         for episode in range(test_episodes):
