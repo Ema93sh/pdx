@@ -14,6 +14,12 @@ from .base_task_runner import BaseTaskRunner
 from explanations import Explanation
 
 
+use_cuda = torch.cuda.is_available()
+FloatTensor = torch.cuda.FloatTensor if use_cuda else torch.FloatTensor
+LongTensor = torch.cuda.LongTensor if use_cuda else torch.LongTensor
+ByteTensor = torch.cuda.ByteTensor if use_cuda else torch.ByteTensor
+Tensor = FloatTensor
+
 class DecomposedQTaskRunner(BaseTaskRunner):
     """Training and evaluation for decomposed Q learning"""
 
@@ -44,7 +50,7 @@ class DecomposedQTaskRunner(BaseTaskRunner):
             cominded_q_values, q_values = self.model(state)
             return cominded_q_values.data.max(1)[1]
         else:
-            return torch.LongTensor([random.randrange(self.action_space)])
+            return LongTensor([random.randrange(self.action_space)])
 
     def train(self, training_episodes=5000, max_steps=10000):
         self.model.train()
@@ -63,11 +69,11 @@ class DecomposedQTaskRunner(BaseTaskRunner):
                 next_state, reward, done, info = self.env.step(int(action))
                 total_reward += sum(reward)
 
-                reward = torch.FloatTensor([reward])
+                reward = FloatTensor([reward])
 
                 next_state = Variable(torch.Tensor(next_state.tolist())).unsqueeze(0)
 
-                self.replay_memory.push(state, action, reward, next_state, torch.FloatTensor([done]))
+                self.replay_memory.push(state, action, reward, next_state, FloatTensor([done]))
 
                 state = next_state
 
@@ -178,14 +184,14 @@ class DecomposedQTaskRunner(BaseTaskRunner):
             decomposed_q_box_opts = dict(
                 title='Decomposed Q Values',
                 stacked=False,
-                legend=[r_type for r_type in self.env.get_reward_meanings],
+                legend=['R' + str(i) for i in range(self.env.reward_types)],
                 rownames=[action for action in self.env.get_action_meanings]
             )
             pdx_box = None
             pdx_box_opts = dict(
                 title='PDX',
                 stacked=False,
-                legend=[r_type for r_type in self.env.get_reward_meanings],
+                legend=['R' + str(i) for i in range(self.env.reward_types)],
             )
             pdx_box_title = 'PDX'
             pdx_contribution_box = None
@@ -193,7 +199,7 @@ class DecomposedQTaskRunner(BaseTaskRunner):
             cont_pdx_box_opts = dict(
                 title='PDX Contribution(%)',
                 stacked=False,
-                legend=[r_type for r_type in self.env.get_reward_meanings],
+                legend=['R' + str(i) for i in range(self.env.reward_types)],
             )
         explaination = Explanation()
         for episode in range(test_episodes):
@@ -245,6 +251,14 @@ class DecomposedQTaskRunner(BaseTaskRunner):
                         pdx_contribution_box = self.viz.bar(X=np.array(contribute).T, opts=cont_pdx_box_opts)
                     else:
                         self.viz.bar(X=np.array(contribute).T, opts=cont_pdx_box_opts, win=pdx_contribution_box)
+
+                    # js_injection = '<javascript>' \
+                    #                'document.querySelector("button[data-original-title=Repack]").click()' \
+                    #                '</javascript>'
+                    # if info_text_box is None:
+                    #     info_text_box = self.viz.text(js_injection, opts=info_box_opts)
+                    # else:
+                    #     self.viz.text(js_injection, win=info_text_box, opts=info_box_opts)
 
                     time.sleep(sleep)
 

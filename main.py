@@ -129,9 +129,10 @@ if __name__ == '__main__':
     state = env.reset()
 
     model = get_model(env, args)
-    args.cuda = args.no_cuda and torch.cuda.is_available()
+    args.cuda = not args.no_cuda and torch.cuda.is_available()
 
     if args.cuda:
+        torch.set_default_tensor_type('torch.cuda.FloatTensor')
         model = model.cuda()
 
     task_runner = get_task_runner(env, model, args, query_states_config, viz=viz)
