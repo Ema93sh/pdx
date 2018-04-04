@@ -8,7 +8,7 @@ class FruitCollection2D:
     A simple Fruit Collection environment
     """
 
-    def __init__(self, vis=None, hybrid=False):
+    def __init__(self, vis=None, hybrid=False, state_representation="linear"):
         self.total_fruits = 10
         self.visible_fruits = 5
         self.action_space = 4

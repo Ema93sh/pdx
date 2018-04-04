@@ -5,8 +5,8 @@ import visdom
 import json
 from envs import FruitCollection1D, FruitCollection2D, TreasureHunter
 
-from models.q_model import QModel
-from models.decomposed_q_model import DecomposedQModel
+from models.q_model import QModel, QModelCNN
+from models.decomposed_q_model import DecomposedQModel, DecomposedCNNQModel
 from utils.task_runner import TaskRunner
 from utils.decomposed_task_runner import DecomposedQTaskRunner
 from explanations import Explanation
@@ -26,7 +26,8 @@ def get_env(args, viz):
         print("Loading scenarios...")
         scenarios = json.load(open(args.scenarios_path))
 
-    env = env_map[args.env](hybrid=args.decompose, vis=viz)
+    state_representation = "grid" if args.cnn else "linear"
+    env = env_map[args.env](hybrid=args.decompose, vis=viz, state_representation = state_representation)
 
     return env, scenarios
 
@@ -34,9 +35,13 @@ def get_env(args, viz):
 def get_model(env, args):
     state = env.reset()
     if args.decompose:
-        model = DecomposedQModel(env.reward_types, len(state), env.action_space)
+        if args.cnn:
+            model = DecomposedCNNQModel(env.reward_types, len(state), env.action_space)
+        else:
+            model = DecomposedQModel(env.reward_types, len(state), env.action_space)
+
     else:
-        model = QModel(len(state), env.action_space)
+        model = QModelCNN(len(state), env.action_space) if args.cnn else QModel(len(state), env.action_space)
 
     if args.load:
         cwd = os.getcwd()
@@ -49,7 +54,7 @@ def get_model(env, args):
 
 def get_task_runner(env, model, args, query_states, viz=None):
     file_name = "%s_%s_.torch" % (env.name, "decompose" if args.decompose else "simple")
-    result_path = "results/%s/%s" % (env.name, "decompose" if args.decompose else "non_decompose")
+    result_path = "results/%s/%s/%s" % (env.name, "cnn" if args.cnn else "linear", "decompose" if args.decompose else "non_decompose")
 
     result_path = args.result_path if args.result_path != "" else result_path
 
@@ -105,6 +110,7 @@ if __name__ == '__main__':
     parser.add_argument('--lr', type=float, default=0.01, help='Learning Rate for Training (Adam Optimizer)')
 
     # Network Config
+    parser.add_argument('--cnn', action="store_true", default=False)
     parser.add_argument('--load', action='store_true', default=False,
                         help='Train the network from scratch ( or Does not load pre-trained model)')
     parser.add_argument('--save', action='store_true', default=False,

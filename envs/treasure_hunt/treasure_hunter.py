@@ -12,7 +12,7 @@ from .env_map import EnvMap
 class TreasureHunter(object):
     """The hunter is searching for treasure."""
 
-    def __init__(self, vis = None, hybrid = False, map_name = "10x10_default"):
+    def __init__(self, vis = None, hybrid = False, map_name = "10x10_default", state_representation="linear"):
         self.action_space = 4
         self.current_dir = os.path.dirname(os.path.realpath(__file__))
         self.vis = vis
@@ -24,6 +24,9 @@ class TreasureHunter(object):
         self.total_treasure = len(self.treasure_locations)
         self.__image_window = None
         self.reward_types = self.total_treasure + 1
+        self.get_action_meanings = ['Up', 'Right', 'Down', 'Left']
+        self.get_reward_meanings = [ "(%d, %d)" % (location) for location in self.treasure_locations] + ["Lightning Strike"]
+        self.state_representation = state_representation
         self.reset()
 
 
@@ -64,7 +67,6 @@ class TreasureHunter(object):
     def generate_state(self):
         agent_grid = np.zeros(self.map.shape())
         agent_grid[self.agent_location[0], self.agent_location[1]] = 1
-        agent_grid = agent_grid.reshape(np.prod(agent_grid.shape))
 
         treasure_locations = np.zeros(self.total_treasure)
         treasure_locations[[not x for x in self.treasure_found]] = 1
@@ -73,9 +75,16 @@ class TreasureHunter(object):
         lightning_grid = np.zeros(self.map.shape())
         for pos in self.lightning_pos:
             lightning_grid[pos] = 1
-        lightning_grid = lightning_grid.reshape(np.prod(lightning_grid.shape))
 
-        state = np.concatenate((agent_grid, treasure_locations, lightning_grid))
+        if self.state_representation == "grid":
+            treasure_locations = np.zeros(self.map.shape())
+            for pos in self.treasure_locations:
+                treasure_locations[pos] = 1
+            state = np.stack((agent_grid, treasure_locations, lightning_grid))
+        else:
+            agent_grid = agent_grid.reshape(np.prod(agent_grid.shape))
+            lightning_grid = lightning_grid.reshape(np.prod(lightning_grid.shape))
+            state = np.concatenate((agent_grid, treasure_locations, lightning_grid))
         return state
 
     def generate_lightning(self):
@@ -159,7 +168,6 @@ class TreasureHunter(object):
         self.move(action)
 
         self.lightning_pos = self.generate_lightning()
-
         struck_by_lightning = self.agent_location in self.lightning_pos
 
         if self.agent_location in self.treasure_locations:
@@ -169,7 +177,7 @@ class TreasureHunter(object):
                 self.treasure_found[index] = True
 
         if struck_by_lightning:
-            reward[-1] = -10
+            reward[-1] = -5
 
 
         all_treasure_collected = all(self.treasure_found)

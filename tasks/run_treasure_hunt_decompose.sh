@@ -3,13 +3,14 @@ python main.py --env TreasureHunter \
              --decompose \
              --log-interval 1  \
              --decay-rate 2000 \
-             --update-steps 50 \
+             --update-steps 100 \
              --replay-capacity 20000 \
              --train-episodes 5000 \
              --save-steps 1000 \
              --restart-epsilon-steps 0 \
              --result-path "./results/TreasureHunter/decompose/no_restart" \
-             --save
+             --save \
+             --cnn 
 
              # --scenarios-path "./scenarios/TreasureHunter.json" \
 
