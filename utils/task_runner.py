@@ -155,8 +155,14 @@ class TaskRunner(BaseTaskRunner):
         self.optimizer.step()
 
 
-    def test(self, test_episodes= 100, max_steps = 100, render = False,sleep=1):
+    def test(self, test_episodes= 100, max_steps = 100, render = False, sleep=1):
         self.model.eval()
+
+        q_box_opts = dict(
+            title='Q Values',
+            rownames=[action for action in self.env.get_action_meanings]
+        )
+        q_box = None
 
         for episode in range(test_episodes):
             state = self.env.reset()
@@ -165,13 +171,20 @@ class TaskRunner(BaseTaskRunner):
 
             for step in range(max_steps):
                 q_values = self.model(state).data
-                action  =  q_values.max(1)[1].view(1, 1)
+                action  =  q_values.max(1)[1]
 
-                next_state, reward, done, info = self.env.step(int(action))
+                state, reward, done, info = self.env.step(int(action))
                 total_reward += reward
-                state = Variable(torch.Tensor(next_state.tolist())).unsqueeze(0)
+
                 if render:
-                    time.sleep(1)
+                    self.env.render()
+                    if q_box is None:
+                        q_box = self.viz.bar( X = q_values.numpy()[0], opts=q_box_opts)
+                    else:
+                        self.viz.bar( X =q_values.numpy()[0], opts=q_box_opts, win=q_box)
+
+                    time.sleep(sleep)
+
                 if done:
                     print("Test Episode %d total reward %d with steps %d" % (episode+1, total_reward, step + 1))
                     break
