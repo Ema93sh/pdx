@@ -7,7 +7,7 @@ from collections import Counter
 import numpy as np
 import visdom
 
-from env_map import EnvMap
+from .env_map import EnvMap
 
 class TreasureHunter(object):
     """The hunter is searching for treasure."""
@@ -23,6 +23,7 @@ class TreasureHunter(object):
         self.treasure_locations = self.map.get_all_treasure_locations()
         self.total_treasure = len(self.treasure_locations)
         self.__image_window = None
+        self.reward_types = self.total_treasure + 1
         self.reset()
 
 
@@ -39,6 +40,7 @@ class TreasureHunter(object):
         self.lightning_pos = []
         self.total_reward = 0
         self.current_reward = []
+        return self.generate_state()
 
 
     def move(self, action):
@@ -167,7 +169,7 @@ class TreasureHunter(object):
                 self.treasure_found[index] = True
 
         if struck_by_lightning:
-            reward[-1] = -100
+            reward[-1] = -10
 
 
         all_treasure_collected = all(self.treasure_found)

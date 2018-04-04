@@ -95,6 +95,9 @@ class TaskRunner(BaseTaskRunner):
 
     def generate_explanation(self, episode):
         # Explanation
+        if len(self.query_states) == 0:
+            return
+            
         explanation = Explanation()
         pdx_mse = 0
         for state_config in self.query_states:

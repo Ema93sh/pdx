@@ -3,7 +3,7 @@ import torch
 import os
 import visdom
 import json
-from envs import FruitCollection1D, FruitCollection2D
+from envs import FruitCollection1D, FruitCollection2D, TreasureHunter
 
 from models.q_model import QModel
 from models.decomposed_q_model import DecomposedQModel
@@ -17,12 +17,13 @@ from torch.autograd import Variable
 def get_env(args, viz):
     env_map = {
         "FruitCollection1D": FruitCollection1D,
-        "FruitCollection2D": FruitCollection2D
+        "FruitCollection2D": FruitCollection2D,
+        "TreasureHunter": TreasureHunter
     }
 
     scenarios = []
-
-    if not args.test:
+    if not args.test and args.scenarios_path != "":
+        print("Loading scenarios...")
         scenarios = json.load(open(args.scenarios_path))
 
     env = env_map[args.env](hybrid=args.decompose, vis=viz)
@@ -123,6 +124,7 @@ if __name__ == '__main__':
 
     model = get_model(env, args)
     args.cuda = args.no_cuda and torch.cuda.is_available()
+
     if args.cuda:
         model = model.cuda()
 
