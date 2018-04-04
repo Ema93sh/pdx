@@ -29,8 +29,7 @@ class DecomposedQTaskRunner(BaseTaskRunner):
         self.viz = viz
         self.query_states = query_states
 
-
-    def select_action(self, state, restart_epsilon = False):
+    def select_action(self, state, restart_epsilon=False):
         sample = random.random()
         self.current_epsilon_step += 1
 
@@ -39,7 +38,7 @@ class DecomposedQTaskRunner(BaseTaskRunner):
 
         self.epsilon = np.max([0, self.starting_epsilon * (0.96 ** (self.current_epsilon_step / self.decay_rate))])
 
-        should_explore = np.random.choice([True, False],  p = [self.epsilon, 1 - self.epsilon])
+        should_explore = np.random.choice([True, False], p=[self.epsilon, 1 - self.epsilon])
 
         if not should_explore:
             cominded_q_values, q_values = self.model(state)
@@ -112,7 +111,7 @@ class DecomposedQTaskRunner(BaseTaskRunner):
             _q_values = _q_values.data.numpy().squeeze(1)
 
             gt_q = explanation.gt_q_values(self.env, self.model, current_config, self.env.action_space,
-                                           episodes=10)
+                                           episodes=10, gamma=self.discount_factor)
 
             _target_actions = [i for i in range(self.env.action_space) if i != state_action]
             predict_x, _ = explanation.get_pdx(_q_values, state_action, _target_actions)
@@ -120,7 +119,6 @@ class DecomposedQTaskRunner(BaseTaskRunner):
             pdx_mse += explanation.mse_pdx(predict_x, target_x)
         pdx_mse /= len(self.query_states)
         self.summary_log(episode + 1, "MSE - PDX", pdx_mse)
-
 
     def update_model(self):
         if len(self.replay_memory) < self.batch_size:
@@ -161,7 +159,6 @@ class DecomposedQTaskRunner(BaseTaskRunner):
 
         update_end_time = time.time()
         return (update_end_time - update_start_time)
-
 
     def test(self, test_episodes=100, max_steps=100, render=False, sleep=1):
         self.model.eval()
@@ -212,7 +209,8 @@ class DecomposedQTaskRunner(BaseTaskRunner):
 
                 if render:
                     self.env.render()
-                    q_box_opts['title'] = q_box_title + '- (Selected Action:' + str(self.env.get_action_meanings[action]) + ')'
+                    q_box_opts['title'] = q_box_title + '- (Selected Action:' + str(
+                        self.env.get_action_meanings[action]) + ')'
                     if q_box is None:
                         q_box = self.viz.bar(X=cominded_q_values.data.numpy()[0], opts=q_box_opts)
                     else:
@@ -223,8 +221,9 @@ class DecomposedQTaskRunner(BaseTaskRunner):
                     else:
                         self.viz.bar(X=q_values.T, opts=decomposed_q_box_opts, win=decomposed_q_box)
 
-                    pdx_box_opts['rownames'] = ['(' + self.env.get_action_meanings[action] + ',' + self.env.get_action_meanings[i] + ')'
-                                                for i in range(self.env.action_space) if i != action]
+                    pdx_box_opts['rownames'] = [
+                        '(' + self.env.get_action_meanings[action] + ',' + self.env.get_action_meanings[i] + ')'
+                        for i in range(self.env.action_space) if i != action]
                     if len(pdx_box_opts['rownames']) == 1:
                         pdx_box_opts['title'] = pdx_box_title + '    ' + pdx_box_opts['rownames'][0]
                         cont_pdx_box_opts['title'] = pdx_contribution_box_title + '   ' + pdx_box_opts['rownames'][0]

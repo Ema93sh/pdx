@@ -89,7 +89,6 @@ class FruitCollection1D:
         fruit_vector = np.zeros(self.total_fruits)
         fruit_vector[[not x for x in self._fruit_consumed]] = 1
         return np.concatenate((grid.reshape(self.grid_size[0] * self.grid_size[1]), fruit_vector))
-        # return fruit_vector
 
     def close(self):
         if self.__vis is not None:

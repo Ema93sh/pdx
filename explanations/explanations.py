@@ -36,7 +36,7 @@ class Explanation(object):
                         for r in range(len(q_values))]
         return pdx, contribution
 
-    def gt_q_values(self, env, model, state_config, action_space, episodes=1):
+    def gt_q_values(self, env, model, state_config, action_space, episodes=1, gamma=0.99):
         """Estimate the ground truth Q-Values for a given state and it's action space"""
 
         expected_q_values = []
@@ -49,18 +49,19 @@ class Explanation(object):
                 rewards = []
                 state, reward, done, info = env.step(action)
                 rewards.append(reward)
-
+                ep_step = 0
                 while not done:
                     state = Variable(torch.Tensor(state.tolist())).unsqueeze(0)
                     cominded_q_values = model(state)
 
-                    if len(cominded_q_values) == 2: #TODO need a better way
+                    if len(cominded_q_values) == 2:  # TODO need a better way
                         cominded_q_values = cominded_q_values[0]
 
                     action = int(cominded_q_values.data.max(1)[1])
 
                     state, reward, done, info = env.step(action)
-                    rewards.append(reward)
+                    rewards.append(((gamma ** ep_step) * np.array(reward)).tolist())
+                    ep_step += 1
 
                 rewards = np.stack(rewards)
                 episode_reward.append(rewards.sum(0))
