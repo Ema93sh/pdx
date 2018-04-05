@@ -44,11 +44,9 @@ def get_model(env, args):
     else:
         model = QModelCNN(len(state), env.action_space) if args.cnn else QModel(len(state), env.action_space)
 
-    if args.load:
+    if args.load_path != "":
         cwd = os.getcwd()
-        file_name = "%s_%s_.torch" % (env.name, "decompose" if args.decompose else "simple")
-        network_path = args.result_path if args.result_path != "" else "results/saved_models"
-        network_path = os.path.join(cwd, network_path, file_name)
+        network_path = os.path.join(cwd, args.load_path)
         model.load_state_dict(torch.load(network_path))
     return model
 
@@ -75,7 +73,7 @@ def get_task_runner(env, model, args, query_states, viz=None):
         "save_steps": args.save_steps,
         "restart_epsilon_steps": args.restart_epsilon_steps,
         "post_train_explore": args.post_train_explore,
-        "post_explore_init_episode": args.post_explore_init_episode,
+        "starting_episilon": args.starting_episilon,
         'init_expo_rate': args.init_expo_rate
     }
 
@@ -107,7 +105,7 @@ if __name__ == '__main__':
                         help='Will restart epsilon after n steps. If 0 no restart')
     parser.add_argument('--result-path', type=str, default="", help='Path to save all the plots and model')
     parser.add_argument('--post_train_explore', action="store_true", default=False)
-    parser.add_argument('--post_explore_init_episode', type=int, default=1000,
+    parser.add_argument('--starting_episilon', type=int, default=1000,
                         help='No. of episodes after which exploration begins for improving q-values')
 
     # Reinforcement Config
@@ -123,8 +121,7 @@ if __name__ == '__main__':
 
     # Network Config
     parser.add_argument('--cnn', action="store_true", default=False)
-    parser.add_argument('--load', action='store_true', default=False,
-                        help='Train the network from scratch ( or Does not load pre-trained model)')
+    parser.add_argument('--load-path', default=False, help='Load model from this path')
     parser.add_argument('--save', action='store_true', default=False,
                         help='Save the model after training')
 

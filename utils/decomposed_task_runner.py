@@ -119,11 +119,12 @@ class DecomposedQTaskRunner(BaseTaskRunner):
         if not self.save_model:
             return
 
-        current_model_score = self.test(test_episodes = 5, log_steps = 2)
+        current_model_score = self.test(test_episodes = 5, log_steps=0)
         self.model.train()
-        self.summary_log(episode + 1, "Test Score",current_model_score)
+        self.summary_log(episode + 1, "Test Score", current_model_score)
 
         if self.best_score < current_model_score:
+            print("Best Score...", current_model_score)
             self.best_score = current_model_score
             self.save()
 
