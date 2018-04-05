@@ -1,17 +1,16 @@
 [
   {
     "agent_location": [1, 10],
-    "treasure_found": [false, true, false, false, false, false, false, false, false]
+    "treasure_found": [false, true, false, false, false, false, false, false]
   },
 
   {
     "agent_location": [5, 5],
-    "treasure_found": [false, true, true, true, true, true, true, true, true]
+    "treasure_found": [false, true, true, true, true, true, true, true]
   },
 
   {
     "agent_location": [1, 1],
-    "treasure_found": [false, false, false, false, false, false, false, false, false]
-  },
-
+    "treasure_found": [false, false, false, false, false, false, false, false]
+  }
 ]

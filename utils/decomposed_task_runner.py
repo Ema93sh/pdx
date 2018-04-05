@@ -64,7 +64,7 @@ class DecomposedQTaskRunner(BaseTaskRunner):
         self.model.train()
         self.best_score = 0
         restart_epsilon = False
-        explore = False
+        explore = None
         for episode in range(training_episodes):
             state = self.env.reset()
             total_reward = 0
