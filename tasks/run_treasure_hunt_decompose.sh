@@ -7,7 +7,7 @@ python main.py --env TreasureHunter \
              --update-frequency 6 \
              --replay-capacity 200000 \
              --train-episodes 5000 \
-             --save-steps 1000 \
+             --save-steps 500 \
              --restart-epsilon-steps 0 \
              --gamma 0.99 \
              --save \
