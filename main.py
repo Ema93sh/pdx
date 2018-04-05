@@ -77,7 +77,6 @@ def get_task_runner(env, model, args, query_states, viz=None):
         "post_train_explore": args.post_train_explore,
         "post_explore_init_episode": args.post_explore_init_episode,
         'init_expo_rate': args.init_expo_rate
-
     }
 
     if args.decompose:
@@ -108,7 +107,7 @@ if __name__ == '__main__':
                         help='Will restart epsilon after n steps. If 0 no restart')
     parser.add_argument('--result-path', type=str, default="", help='Path to save all the plots and model')
     parser.add_argument('--post_train_explore', action="store_true", default=False)
-    parser.add_argument('--post_explore_init_episodes', type=int, default=1000,
+    parser.add_argument('--post_explore_init_episode', type=int, default=1000,
                         help='No. of episodes after which exploration begins for improving q-values')
 
     # Reinforcement Config
