@@ -13,12 +13,12 @@ from .replay_memory import ReplayMemory, Transition
 from .base_task_runner import BaseTaskRunner
 from explanations import Explanation
 
-
 use_cuda = torch.cuda.is_available()
 FloatTensor = torch.cuda.FloatTensor if use_cuda else torch.FloatTensor
 LongTensor = torch.cuda.LongTensor if use_cuda else torch.LongTensor
 ByteTensor = torch.cuda.ByteTensor if use_cuda else torch.ByteTensor
 Tensor = FloatTensor
+
 
 class DecomposedQTaskRunner(BaseTaskRunner):
     """Training and evaluation for decomposed Q learning"""
@@ -35,7 +35,7 @@ class DecomposedQTaskRunner(BaseTaskRunner):
         self.viz = viz
         self.query_states = query_states
 
-    def select_action(self, state, restart_epsilon=False):
+    def select_action(self, state, restart_epsilon=False, should_explore=None):
         sample = random.random()
         self.current_epsilon_step += 1
 
@@ -44,7 +44,8 @@ class DecomposedQTaskRunner(BaseTaskRunner):
 
         self.epsilon = np.max([0.1, self.starting_epsilon * (0.96 ** (self.current_epsilon_step / self.decay_rate))])
 
-        should_explore = np.random.choice([True, False], p=[self.epsilon, 1 - self.epsilon])
+        if should_explore is None:
+            should_explore = np.random.choice([True, False], p=[self.epsilon, 1 - self.epsilon])
 
         if not should_explore:
             cominded_q_values, q_values = self.model(state)
@@ -52,9 +53,13 @@ class DecomposedQTaskRunner(BaseTaskRunner):
         else:
             return LongTensor([random.randrange(self.action_space)])
 
+    def explore_policy(self):
+        pass
+
     def train(self, training_episodes=5000, max_steps=10000):
         self.model.train()
         restart_epsilon = False
+        explore = False
         for episode in range(training_episodes):
             state = self.env.reset()
             total_reward = 0
@@ -63,7 +68,7 @@ class DecomposedQTaskRunner(BaseTaskRunner):
             for step in range(max_steps):
                 self.global_steps += 1
 
-                action = self.select_action(state, restart_epsilon)
+                action = self.select_action(state, restart_epsilon, should_explore=explore)
                 restart_epsilon = False
 
                 next_state, reward, done, info = self.env.step(int(action))
@@ -83,8 +88,10 @@ class DecomposedQTaskRunner(BaseTaskRunner):
                 if self.global_steps % self.target_update_frequency == 0:
                     self.target_model.clone_from(self.model)
 
-                if self.current_epsilon_step != 0 and self.restart_epsilon_steps != 0 and self.current_epsilon_step % self.restart_epsilon_steps == 0:
-                    restart_epsilon = True
+                if (not explore) and self.post_train_explore and self.post_explore_init_episode == episode:
+                    explore = True
+                # if self.current_epsilon_step != 0 and self.restart_epsilon_steps != 0 and self.current_epsilon_step % self.restart_epsilon_steps == 0:
+                #     restart_epsilon = True
 
                 if self.global_steps % self.save_steps == 0:
                     self.generate_explanation(episode)

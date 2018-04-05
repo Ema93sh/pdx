@@ -27,7 +27,8 @@ def get_env(args, viz):
         scenarios = json.load(open(args.scenarios_path))
 
     state_representation = "grid" if args.cnn else "linear"
-    env = env_map[args.env](hybrid=args.decompose, vis=viz, state_representation = state_representation, map_name="10x10_easy")
+    env = env_map[args.env](hybrid=args.decompose, vis=viz, state_representation=state_representation,
+                            map_name="10x10_easy")
 
     return env, scenarios
 
@@ -54,7 +55,8 @@ def get_model(env, args):
 
 def get_task_runner(env, model, args, query_states, viz=None):
     file_name = "%s_%s_.torch" % (env.name, "decompose" if args.decompose else "simple")
-    result_path = "results/%s/%s/%s" % (env.name, "cnn" if args.cnn else "linear", "decompose" if args.decompose else "non_decompose")
+    result_path = "results/%s/%s/%s" % (
+        env.name, "cnn" if args.cnn else "linear", "decompose" if args.decompose else "non_decompose")
 
     result_path = args.result_path if args.result_path != "" else result_path
 
@@ -71,7 +73,11 @@ def get_task_runner(env, model, args, query_states, viz=None):
         "file_name": file_name,
         "result_path": result_path,
         "save_steps": args.save_steps,
-        "restart_epsilon_steps": args.restart_epsilon_steps
+        "restart_epsilon_steps": args.restart_epsilon_steps,
+        "post_train_explore": args.post_train_explore,
+        "post_explore_init_episode": args.post_explore_init_episode,
+        'init_expo_rate': args.init_expo_rate
+
     }
 
     if args.decompose:
@@ -98,8 +104,12 @@ if __name__ == '__main__':
     parser.add_argument('--no_cuda', action='store_true', default=False, help='Disables Cuda Usage')
     parser.add_argument('--test', action='store_true', default=False, help='Disables Cuda Usage')
     parser.add_argument('--save-steps', type=int, default=1000, help='Will save after n steps')
-    parser.add_argument('--restart-epsilon-steps', type=int, default=0, help='Will restart epsilon after n steps. If 0 no restart')
+    parser.add_argument('--restart-epsilon-steps', type=int, default=0,
+                        help='Will restart epsilon after n steps. If 0 no restart')
     parser.add_argument('--result-path', type=str, default="", help='Path to save all the plots and model')
+    parser.add_argument('--post_train_explore', action="store_true", default=False)
+    parser.add_argument('--post_explore_init_episodes', type=int, default=1000,
+                        help='No. of episodes after which exploration begins for improving q-values')
 
     # Reinforcement Config
     parser.add_argument('--gamma', type=float, default=0.99, metavar='G', help='discount factor (default: 0.99)')
@@ -110,6 +120,7 @@ if __name__ == '__main__':
     parser.add_argument('--update-frequency', type=int, default=5, help='model update frequency')
 
     parser.add_argument('--lr', type=float, default=0.01, help='Learning Rate for Training (Adam Optimizer)')
+    parser.add_argument('--init_expo_rate', type=float, default=1, help='Initial Exploration Rate')
 
     # Network Config
     parser.add_argument('--cnn', action="store_true", default=False)
@@ -121,7 +132,6 @@ if __name__ == '__main__':
     # Explanation Config
     parser.add_argument('--scenarios-path', type=str, default="",
                         help='Path to scenarios. Will run all the scenarios')
-
 
     args = parser.parse_args()
     viz = visdom.Visdom() if args.render else None

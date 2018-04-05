@@ -22,8 +22,10 @@ class BaseTaskRunner(object):
         self.summaries = {}
         self.result_path = config["result_path"]
         self.save_steps = config["save_steps"]
+        self.post_train_explore = config['post_train_explore']
+        self.post_explore_init_episode = config['post_explore_init_episode']
         self.current_epsilon_step = self.global_steps
-        self.starting_epsilon = 1.0
+        self.starting_epsilon = config['init_expo_rate']
         self.restart_epsilon_steps = config["restart_epsilon_steps"]
 
 
