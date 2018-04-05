@@ -9,8 +9,7 @@ python main.py --env TreasureHunter \
              --save-steps 1000 \
              --restart-epsilon-steps 0 \
              --result-path "./results/TreasureHunter/decompose/no_restart" \
-             --save \
-             --cnn 
+             --save 
 
              # --scenarios-path "./scenarios/TreasureHunter.json" \
 

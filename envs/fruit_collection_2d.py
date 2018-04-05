@@ -29,7 +29,9 @@ class FruitCollection2D:
         self.__image_window = None
         self.__linear_grid_window = None
         self.get_action_meanings = ['Up', 'Right', 'Down', 'Left']
+        self.get_reward_meanings = ["(%d, %d)" %(pos) for pos in self._fruit_positions]
         self.reward_types = self.total_fruits
+
 
     def reset(self, fruits_loc=None, step_count=0, agent_position=[4, 4], score=0, step_reward=0, fruit_collected=0):
         self.curr_step_count = step_count

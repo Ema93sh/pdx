@@ -19,7 +19,7 @@ class TreasureHunter(object):
         self.hybrid = hybrid
         self.name = "TreasureHunter"
         self.map = EnvMap(os.path.join(self.current_dir, "maps", map_name + ".map"))
-        self.max_step = 300
+        self.max_step = 100
         self.treasure_locations = self.map.get_all_treasure_locations()
         self.total_treasure = len(self.treasure_locations)
         self.__image_window = None
@@ -173,7 +173,7 @@ class TreasureHunter(object):
         if self.agent_location in self.treasure_locations:
             index = self.treasure_locations.index(self.agent_location)
             if index != -1 and not self.treasure_found[index]:
-                reward[index] = 1
+                reward[index] = 2
                 self.treasure_found[index] = True
 
         if struck_by_lightning:

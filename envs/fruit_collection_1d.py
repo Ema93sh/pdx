@@ -31,6 +31,7 @@ class FruitCollection1D:
         self.game_score = 0
         self.step_reward = 0
         self.fruit_collected = 0
+        self.get_reward_meanings = ["(%d, %d)" %(pos) for pos in self._fruit_positions]
 
     def reset(self, fruits_loc=None, step_count=0, agent_position=[0, 4], score=0, step_reward=0, fruit_collected=0):
         self.curr_step_count = step_count
