@@ -34,6 +34,10 @@ class DecomposedQTaskRunner(BaseTaskRunner):
         self.loss_fn = nn.SmoothL1Loss()
         self.viz = viz
         self.query_states = query_states
+        self.decomposed_q_box = None
+        self.pdx_box = None
+        self.pdx_contribution_box = None
+        self.q_box = None
 
     def select_action(self, state, restart_epsilon=False):
         sample = random.random()
@@ -108,7 +112,7 @@ class DecomposedQTaskRunner(BaseTaskRunner):
         if not self.save_model:
             return
 
-        current_model_score = self.test(test_episodes = 10)
+        current_model_score = self.test(test_episodes = 5, log_steps = 2)
         self.model.train()
         self.summary_log(episode + 1, "Test Score",current_model_score)
 
@@ -232,21 +236,21 @@ class DecomposedQTaskRunner(BaseTaskRunner):
             title='Q Values',
             rownames=[action for action in self.env.get_action_meanings]
         )
-        decomposed_q_box = None
         decomposed_q_box_opts = dict(
             title='Decomposed Q Values',
             stacked=False,
             legend=[r_type for r_type in self.env.get_reward_meanings],
             rownames=[action for action in self.env.get_action_meanings]
         )
-        pdx_box = None
+
         pdx_box_opts = dict(
             title='PDX',
             stacked=False,
             legend=[r_type for r_type in self.env.get_reward_meanings],
         )
         pdx_box_title = 'PDX'
-        pdx_contribution_box = None
+
+
         pdx_contribution_box_title = 'PDX Contribution(%)'
         cont_pdx_box_opts = dict(
             title='PDX Contribution(%)',
@@ -257,19 +261,21 @@ class DecomposedQTaskRunner(BaseTaskRunner):
         q_box_opts['title'] = q_box_title + '- (Selected Action:' + str(
             self.env.get_action_meanings[action]) + ')'
 
-        if q_box is None:
-            q_box = self.viz.bar(X=cominded_q_values.data.numpy()[0], opts=q_box_opts)
+        if self.q_box is None:
+            self.q_box = self.viz.bar(X=cominded_q_values.data.numpy()[0], opts=q_box_opts)
         else:
-            self.viz.bar(X=cominded_q_values.data.numpy()[0], opts=q_box_opts, win=q_box)
+            self.viz.bar(X=cominded_q_values.data.numpy()[0], opts=q_box_opts, win=self.q_box)
 
-        if decomposed_q_box is None:
-            decomposed_q_box = self.viz.bar(X=q_values.T, opts=decomposed_q_box_opts)
+
+        if self.decomposed_q_box is None:
+            self.decomposed_q_box = self.viz.bar(X=q_values.T, opts=decomposed_q_box_opts)
         else:
-            self.viz.bar(X=q_values.T, opts=decomposed_q_box_opts, win=decomposed_q_box)
+            self.viz.bar(X=q_values.T, opts=decomposed_q_box_opts, win=self.decomposed_q_box)
 
         pdx_box_opts['rownames'] = [
             '(' + self.env.get_action_meanings[action] + ',' + self.env.get_action_meanings[i] + ')'
             for i in range(self.env.action_space) if i != action]
+
         if len(pdx_box_opts['rownames']) == 1:
             pdx_box_opts['title'] = pdx_box_title + '    ' + pdx_box_opts['rownames'][0]
             cont_pdx_box_opts['title'] = pdx_contribution_box_title + '   ' + pdx_box_opts['rownames'][0]
@@ -280,11 +286,13 @@ class DecomposedQTaskRunner(BaseTaskRunner):
         _target_actions = [j for j in range(self.env.action_space) if j != action]
         pdx, contribute = explaination.get_pdx(q_values, action, _target_actions)
 
-        if pdx_box is None:
-            pdx_box = self.viz.bar(X=np.array(pdx).T, opts=pdx_box_opts)
+        if self.pdx_box is None:
+            self.pdx_box = self.viz.bar(X=np.array(pdx).T, opts=pdx_box_opts)
         else:
-            self.viz.bar(X=np.array(pdx).T, opts=pdx_box_opts, win=pdx_box)
-        if pdx_contribution_box is None:
-            pdx_contribution_box = self.viz.bar(X=np.array(contribute).T, opts=cont_pdx_box_opts)
+            self.viz.bar(X=np.array(pdx).T, opts=pdx_box_opts, win=self.pdx_box)
+
+
+        if self.pdx_contribution_box is None:
+            self.pdx_contribution_box = self.viz.bar(X=np.array(contribute).T, opts=cont_pdx_box_opts)
         else:
-            self.viz.bar(X=np.array(contribute).T, opts=cont_pdx_box_opts, win=pdx_contribution_box)
+            self.viz.bar(X=np.array(contribute).T, opts=cont_pdx_box_opts, win=self.pdx_contribution_box)
