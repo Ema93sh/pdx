@@ -42,7 +42,7 @@ class DecomposedQTaskRunner(BaseTaskRunner):
         if restart_epsilon:
             self.current_epsilon_step = 100
 
-        self.epsilon = np.max([0, self.starting_epsilon * (0.96 ** (self.current_epsilon_step / self.decay_rate))])
+        self.epsilon = np.max([0.1, self.starting_epsilon * (0.96 ** (self.current_epsilon_step / self.decay_rate))])
 
         should_explore = np.random.choice([True, False], p=[self.epsilon, 1 - self.epsilon])
 
@@ -77,9 +77,10 @@ class DecomposedQTaskRunner(BaseTaskRunner):
 
                 state = next_state
 
-                self.update_model()
+                if self.global_steps % self.update_frequency == 0:
+                    self.update_model()
 
-                if self.global_steps % self.update_steps == 0:
+                if self.global_steps % self.target_update_frequency == 0:
                     self.target_model.clone_from(self.model)
 
                 if self.current_epsilon_step != 0 and self.restart_epsilon_steps != 0 and self.current_epsilon_step % self.restart_epsilon_steps == 0:

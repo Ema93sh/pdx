@@ -27,7 +27,7 @@ def get_env(args, viz):
         scenarios = json.load(open(args.scenarios_path))
 
     state_representation = "grid" if args.cnn else "linear"
-    env = env_map[args.env](hybrid=args.decompose, vis=viz, state_representation = state_representation)
+    env = env_map[args.env](hybrid=args.decompose, vis=viz, state_representation = state_representation, map_name="10x10_easy")
 
     return env, scenarios
 
@@ -65,7 +65,8 @@ def get_task_runner(env, model, args, query_states, viz=None):
         "discount_factor": args.gamma,
         "save_model": args.save,
         "decay_rate": args.decay_rate,
-        "update_steps": args.update_steps,
+        "update_frequency": args.update_frequency,
+        "target_update_frequency": args.target_update_frequency,
         "log_interval": args.log_interval,
         "file_name": file_name,
         "result_path": result_path,
@@ -104,8 +105,9 @@ if __name__ == '__main__':
     parser.add_argument('--gamma', type=float, default=0.99, metavar='G', help='discount factor (default: 0.99)')
     parser.add_argument('--batch-size', type=int, default=35, help='Batch Size(No. of Episodes) for Training')
     parser.add_argument('--replay-capacity', type=int, default=5000, help='Size of Experience replay')
-    parser.add_argument('--decay-rate', type=int, default=10, help='Size of Experience replay')
-    parser.add_argument('--update-steps', type=int, default=50, help='Size of Experience replay')
+    parser.add_argument('--decay-rate', type=int, default=10, help='Decay rate')
+    parser.add_argument('--target-update-frequency', type=int, default=50, help='Update frequency for target')
+    parser.add_argument('--update-frequency', type=int, default=5, help='model update frequency')
 
     parser.add_argument('--lr', type=float, default=0.01, help='Learning Rate for Training (Adam Optimizer)')
 

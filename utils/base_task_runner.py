@@ -14,7 +14,8 @@ class BaseTaskRunner(object):
         self.save_model = config["save_model"]
         self.global_steps = 0
         self.decay_rate = config["decay_rate"]
-        self.update_steps = config["update_steps"]
+        self.target_update_frequency = config["target_update_frequency"]
+        self.update_frequency = config["update_frequency"]
         self.log_interval = config["log_interval"]
         self.replay_memory = ReplayMemory(self.replay_capacity)
         self.file_name = config["file_name"]
