@@ -141,17 +141,3 @@ if __name__ == '__main__':
         task_runner.train(training_episodes=args.train_episodes)
 
     task_runner.test(test_episodes=args.test_episodes, render=args.render, sleep=args.sleep)
-
-    #
-    # explanation = Explanation()
-    # state_config = {
-    #     "fruits_loc": [1],
-    #     "step_count": 0,
-    #     "agent_position": [0, 4],
-    #     "score": 0,
-    #     "step_reward": 0,
-    #     "fruit_collected": 0
-    # }
-    #
-    # gtx = explanation.gt_q_values(env, model, state_config, env.action_space, episodes=100)
-    # print(gtx)

@@ -177,7 +177,7 @@ class TreasureHunter(object):
                 self.treasure_found[index] = True
 
         if struck_by_lightning:
-            reward[-1] = -5
+            reward[-1] = -1
 
 
         all_treasure_collected = all(self.treasure_found)

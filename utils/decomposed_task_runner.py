@@ -158,6 +158,9 @@ class DecomposedQTaskRunner(BaseTaskRunner):
         target_q_values = Variable(target_q_values.data)
 
         loss = self.loss_fn(q_values, target_q_values)
+
+        self.summary_log(self.global_steps, "Loss", loss.data)
+
         update_start_time = time.time()
 
         self.optimizer.zero_grad()

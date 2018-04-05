@@ -2,14 +2,14 @@ echo "Running 2D without Restart...."
 python main.py --env TreasureHunter \
              --decompose \
              --log-interval 1  \
-             --decay-rate 2000 \
+             --decay-rate 500 \
              --update-steps 100 \
              --replay-capacity 20000 \
              --train-episodes 5000 \
              --save-steps 1000 \
              --restart-epsilon-steps 0 \
              --result-path "./results/TreasureHunter/decompose/no_restart" \
-             --save 
+             --save
 
              # --scenarios-path "./scenarios/TreasureHunter.json" \
 
