@@ -34,6 +34,10 @@ class DecomposedQTaskRunner(BaseTaskRunner):
         self.loss_fn = nn.SmoothL1Loss()
         self.viz = viz
         self.query_states = query_states
+        self.decomposed_q_box = None
+        self.pdx_box = None
+        self.pdx_contribution_box = None
+        self.q_box = None
 
     def select_action(self, state, restart_epsilon=False, should_explore=None):
         sample = random.random()
@@ -58,6 +62,7 @@ class DecomposedQTaskRunner(BaseTaskRunner):
 
     def train(self, training_episodes=5000, max_steps=10000):
         self.model.train()
+        self.best_score = 0
         restart_epsilon = False
         explore = False
         for episode in range(training_episodes):
@@ -94,9 +99,9 @@ class DecomposedQTaskRunner(BaseTaskRunner):
                 #     restart_epsilon = True
 
                 if self.global_steps % self.save_steps == 0:
+                    self.save_best_model(episode)
                     self.generate_explanation(episode)
                     self.plot_summaries()
-                    self.save()
 
                 if done:
                     self.summary_log(episode + 1, "Total Reward", total_reward)
@@ -107,8 +112,21 @@ class DecomposedQTaskRunner(BaseTaskRunner):
                             "Training Episode %d total reward %d with steps %d" % (episode + 1, total_reward, step + 1))
                     break
 
+        self.save_best_model(episode)
         self.plot_summaries()
-        self.save()
+
+    def save_best_model(self, episode):
+        if not self.save_model:
+            return
+
+        current_model_score = self.test(test_episodes = 5, log_steps = 2)
+        self.model.train()
+        self.summary_log(episode + 1, "Test Score",current_model_score)
+
+        if self.best_score < current_model_score:
+            self.best_score = current_model_score
+            self.save()
+
 
     def generate_explanation(self, episode):
         # Explanation
@@ -180,39 +198,11 @@ class DecomposedQTaskRunner(BaseTaskRunner):
         update_end_time = time.time()
         return (update_end_time - update_start_time)
 
-    def test(self, test_episodes=100, max_steps=100, render=False, sleep=1):
+    def test(self, test_episodes=100, max_steps=1000, render=False, sleep=1, log_steps=1):
         self.model.eval()
-        if render:
-            info_text_box = None
-            info_box_opts = dict(title="Info Box")
-            q_box = None
-            q_box_title = 'Q Values'
-            q_box_opts = dict(
-                title='Q Values',
-                rownames=[action for action in self.env.get_action_meanings]
-            )
-            decomposed_q_box = None
-            decomposed_q_box_opts = dict(
-                title='Decomposed Q Values',
-                stacked=False,
-                legend=[r_type for r_type in self.env.get_reward_meanings],
-                rownames=[action for action in self.env.get_action_meanings]
-            )
-            pdx_box = None
-            pdx_box_opts = dict(
-                title='PDX',
-                stacked=False,
-                legend=[r_type for r_type in self.env.get_reward_meanings],
-            )
-            pdx_box_title = 'PDX'
-            pdx_contribution_box = None
-            pdx_contribution_box_title = 'PDX Contribution(%)'
-            cont_pdx_box_opts = dict(
-                title='PDX Contribution(%)',
-                stacked=False,
-                legend=[r_type for r_type in self.env.get_reward_meanings],
-            )
-        explaination = Explanation()
+
+        test_score = 0
+
         for episode in range(test_episodes):
             state = self.env.reset()
             total_reward = 0
@@ -229,51 +219,87 @@ class DecomposedQTaskRunner(BaseTaskRunner):
 
                 if render:
                     self.env.render()
-                    q_box_opts['title'] = q_box_title + '- (Selected Action:' + str(
-                        self.env.get_action_meanings[action]) + ')'
-                    if q_box is None:
-                        q_box = self.viz.bar(X=cominded_q_values.data.numpy()[0], opts=q_box_opts)
-                    else:
-                        self.viz.bar(X=cominded_q_values.data.numpy()[0], opts=q_box_opts, win=q_box)
-
-                    if decomposed_q_box is None:
-                        decomposed_q_box = self.viz.bar(X=q_values.T, opts=decomposed_q_box_opts)
-                    else:
-                        self.viz.bar(X=q_values.T, opts=decomposed_q_box_opts, win=decomposed_q_box)
-
-                    pdx_box_opts['rownames'] = [
-                        '(' + self.env.get_action_meanings[action] + ',' + self.env.get_action_meanings[i] + ')'
-                        for i in range(self.env.action_space) if i != action]
-                    if len(pdx_box_opts['rownames']) == 1:
-                        pdx_box_opts['title'] = pdx_box_title + '    ' + pdx_box_opts['rownames'][0]
-                        cont_pdx_box_opts['title'] = pdx_contribution_box_title + '   ' + pdx_box_opts['rownames'][0]
-                        pdx_box_opts.pop('rownames')
-                    else:
-                        cont_pdx_box_opts['rownames'] = pdx_box_opts['rownames']
-
-                    _target_actions = [j for j in range(self.env.action_space) if j != action]
-                    pdx, contribute = explaination.get_pdx(q_values, action, _target_actions)
-
-                    if pdx_box is None:
-                        pdx_box = self.viz.bar(X=np.array(pdx).T, opts=pdx_box_opts)
-                    else:
-                        self.viz.bar(X=np.array(pdx).T, opts=pdx_box_opts, win=pdx_box)
-                    if pdx_contribution_box is None:
-                        pdx_contribution_box = self.viz.bar(X=np.array(contribute).T, opts=cont_pdx_box_opts)
-                    else:
-                        self.viz.bar(X=np.array(contribute).T, opts=cont_pdx_box_opts, win=pdx_contribution_box)
-
-                    # js_injection = '<javascript>' \
-                    #                'document.querySelector("button[data-original-title=Repack]").click()' \
-                    #                '</javascript>'
-                    # if info_text_box is None:
-                    #     info_text_box = self.viz.text(js_injection, opts=info_box_opts)
-                    # else:
-                    #     self.viz.text(js_injection, win=info_text_box, opts=info_box_opts)
-
+                    self.render_q_values(action, cominded_q_values, q_values)
                     time.sleep(sleep)
 
-                    if done:
+                if done:
+                    test_score += total_reward
+                    if log_steps != 0 and step % log_steps == 0:
                         print("Test Episode %d total reward %d with steps %d" % (episode + 1, total_reward, step + 1))
-                        break
-            pass
+                    break
+
+        return test_score / test_episodes
+
+
+    def render_q_values(self, action, cominded_q_values, q_values):
+        # TODO clean up this mess
+        explaination = Explanation()
+
+        info_text_box = None
+        info_box_opts = dict(title="Info Box")
+        q_box = None
+        q_box_title = 'Q Values'
+        q_box_opts = dict(
+            title='Q Values',
+            rownames=[action for action in self.env.get_action_meanings]
+        )
+        decomposed_q_box_opts = dict(
+            title='Decomposed Q Values',
+            stacked=False,
+            legend=[r_type for r_type in self.env.get_reward_meanings],
+            rownames=[action for action in self.env.get_action_meanings]
+        )
+
+        pdx_box_opts = dict(
+            title='PDX',
+            stacked=False,
+            legend=[r_type for r_type in self.env.get_reward_meanings],
+        )
+        pdx_box_title = 'PDX'
+
+
+        pdx_contribution_box_title = 'PDX Contribution(%)'
+        cont_pdx_box_opts = dict(
+            title='PDX Contribution(%)',
+            stacked=False,
+            legend=[r_type for r_type in self.env.get_reward_meanings],
+        )
+
+        q_box_opts['title'] = q_box_title + '- (Selected Action:' + str(
+            self.env.get_action_meanings[action]) + ')'
+
+        if self.q_box is None:
+            self.q_box = self.viz.bar(X=cominded_q_values.data.numpy()[0], opts=q_box_opts)
+        else:
+            self.viz.bar(X=cominded_q_values.data.numpy()[0], opts=q_box_opts, win=self.q_box)
+
+
+        if self.decomposed_q_box is None:
+            self.decomposed_q_box = self.viz.bar(X=q_values.T, opts=decomposed_q_box_opts)
+        else:
+            self.viz.bar(X=q_values.T, opts=decomposed_q_box_opts, win=self.decomposed_q_box)
+
+        pdx_box_opts['rownames'] = [
+            '(' + self.env.get_action_meanings[action] + ',' + self.env.get_action_meanings[i] + ')'
+            for i in range(self.env.action_space) if i != action]
+
+        if len(pdx_box_opts['rownames']) == 1:
+            pdx_box_opts['title'] = pdx_box_title + '    ' + pdx_box_opts['rownames'][0]
+            cont_pdx_box_opts['title'] = pdx_contribution_box_title + '   ' + pdx_box_opts['rownames'][0]
+            pdx_box_opts.pop('rownames')
+        else:
+            cont_pdx_box_opts['rownames'] = pdx_box_opts['rownames']
+
+        _target_actions = [j for j in range(self.env.action_space) if j != action]
+        pdx, contribute = explaination.get_pdx(q_values, action, _target_actions)
+
+        if self.pdx_box is None:
+            self.pdx_box = self.viz.bar(X=np.array(pdx).T, opts=pdx_box_opts)
+        else:
+            self.viz.bar(X=np.array(pdx).T, opts=pdx_box_opts, win=self.pdx_box)
+
+
+        if self.pdx_contribution_box is None:
+            self.pdx_contribution_box = self.viz.bar(X=np.array(contribute).T, opts=cont_pdx_box_opts)
+        else:
+            self.viz.bar(X=np.array(contribute).T, opts=cont_pdx_box_opts, win=self.pdx_contribution_box)
