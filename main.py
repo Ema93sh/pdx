@@ -72,10 +72,8 @@ def get_task_runner(env, model, args, query_states, viz=None):
         "result_path": result_path,
         "save_steps": args.save_steps,
         "restart_epsilon_steps": args.restart_epsilon_steps,
-        "post_explore_init_episode": args.post_explore_init_episode,
-        "post_train_explore": args.post_train_explore,
         "starting_episilon": args.starting_episilon,
-        'init_expo_rate': args.init_expo_rate
+        "minimum_epsilon": args.minimum_epsilon
     }
 
     if args.decompose:
@@ -105,12 +103,10 @@ if __name__ == '__main__':
     parser.add_argument('--restart-epsilon-steps', type=int, default=0,
                         help='Will restart epsilon after n steps. If 0 no restart')
     parser.add_argument('--result-path', type=str, default="", help='Path to save all the plots and model')
-    parser.add_argument('--post_train_explore', action="store_true", default=False)
-    parser.add_argument('--post_explore_init_episode', type=int, default=None,
-                        help='No. of episodes after which exploration begins for better q-value estimates')
-
-    parser.add_argument('--starting_episilon', type=int, default=1000,
-                        help='No. of episodes after which exploration begins for improving q-values')
+    parser.add_argument('--starting-episilon', type=float, default=1.0,
+                        help='Starting value of epsilon')
+    parser.add_argument('--minimum-epsilon', type=float, default=0.1,
+                        help='Minimum value of epsilon')
 
     # Reinforcement Config
     parser.add_argument('--gamma', type=float, default=0.99, metavar='G', help='discount factor (default: 0.99)')
@@ -119,9 +115,7 @@ if __name__ == '__main__':
     parser.add_argument('--decay-rate', type=int, default=10, help='Decay rate')
     parser.add_argument('--target-update-frequency', type=int, default=50, help='Update frequency for target')
     parser.add_argument('--update-frequency', type=int, default=5, help='model update frequency')
-
     parser.add_argument('--lr', type=float, default=0.01, help='Learning Rate for Training (Adam Optimizer)')
-    parser.add_argument('--init_expo_rate', type=float, default=1, help='Initial Exploration Rate')
 
     # Network Config
     parser.add_argument('--cnn', action="store_true", default=False)

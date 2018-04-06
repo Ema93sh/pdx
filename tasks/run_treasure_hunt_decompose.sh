@@ -1,4 +1,4 @@
-# echo "Running 2D without Restart...."
+# echo "Training Treasure Hunter "
 # python main.py --env TreasureHunter \
 #              --decompose \
 #              --log-interval 10  \
@@ -17,31 +17,7 @@
 #
 # echo "Done"
 
-echo "Running 2D with Restart..."
-
-
-# Training and saving a normal model
-# python main.py --env TreasureHunter \
-#              --decompose \
-#              --log-interval 10  \
-#              --decay-rate 500 \
-#              --target-update-frequency 400 \
-#              --update-frequency 6 \
-#              --replay-capacity 20000 \
-#              --train-episodes 4000 \
-#              --save-steps 1000 \
-#              --restart-epsilon-steps 1000 \
-#              --result-path "./results/TreasureHunter/decompose/restart/normal_q" \
-#              --save
-#              --replay-capacity 200000 \
-#              --train-episodes 5000 \
-#              --save-steps 500 \
-#              --restart-epsilon-steps 0 \
-#              --gamma 0.99 \
-#              --save \
-#              --lr 0.0009
-
-# Evaluating with Exploration
+echo "Running with high Exploration"
 python main.py --env TreasureHunter \
              --decompose \
              --log-interval 10  \
@@ -50,17 +26,15 @@ python main.py --env TreasureHunter \
              --update-frequency 6 \
              --replay-capacity 20000 \
              --train-episodes 2000 \
-             --save-steps 1000 \
-             --restart-epsilon-steps 1000 \
-             --result-path "./results/TreasureHunter/decompose/restart/post_learn_high_expo" \
-             --scenarios-path "./scenarios/TreasureHunter_easy.json" \
-             --post_explore_init_episode 0 \
-             --post_train_explore \
+             --save-steps 500 \
              --lr 0.001 \
              --gamma 0.99 \
-             --load-path "./results/TreasureHunter/linear/decompose/normal_q/TreasureHunter_decompose_.torch"
+             --result-path "./results/TreasureHunter/decompose/high_explore" \
+             --scenarios-path "./scenarios/TreasureHunter_easy.json" \
+             --load-path ./results/TreasureHunter\ /linear/decompose/TreasureHunter_decompose_.torch \
+             --minimum-epsilon 1.0
 
-# Evaluating with Normal Q-Learning with low exploration
+echo "Running with low Exploration"
 python main.py --env TreasureHunter \
              --decompose \
              --log-interval 10  \
@@ -69,13 +43,50 @@ python main.py --env TreasureHunter \
              --update-frequency 6 \
              --replay-capacity 20000 \
              --train-episodes 2000 \
-             --save-steps 1000 \
-             --restart-epsilon-steps 1000 \
-             --result-path "./results/TreasureHunter/decompose/restart/post_learn_low_expo" \
+             --save-steps 500 \
+             --result-path "./results/TreasureHunter/decompose/low_explore" \
              --scenarios-path "./scenarios/TreasureHunter_easy.json" \
-             --init_expo_rate 0.1 \
              --lr 0.001 \
              --gamma 0.99 \
-             --load-path "./results/TreasureHunter/linear/decompose/normal_q/TreasureHunter_decompose_.torch"
+             --load-path ./results/TreasureHunter\ /linear/decompose/TreasureHunter_decompose_.torch \
+             --starting-episilon 0.3 \
+             --minimum-epsilon 0.3
+
+echo "Running with no Exploration"
+python main.py --env TreasureHunter \
+             --decompose \
+             --log-interval 10  \
+             --decay-rate 500 \
+             --target-update-frequency 400 \
+             --update-frequency 6 \
+             --replay-capacity 20000 \
+             --train-episodes 2000 \
+             --save-steps 500 \
+             --result-path "./results/TreasureHunter/decompose/no_explore" \
+             --scenarios-path "./scenarios/TreasureHunter_easy.json" \
+             --load-path ./results/TreasureHunter\ /linear/decompose/TreasureHunter_decompose_.torch \
+             --lr 0.001 \
+             --gamma 0.99 \
+             --starting-episilon 0 \
+             --minimum-epsilon 0
+
+echo "Running with exploration restart"
+python main.py --env TreasureHunter \
+             --decompose \
+             --log-interval 10  \
+             --decay-rate 100 \
+             --target-update-frequency 400 \
+             --update-frequency 6 \
+             --replay-capacity 20000 \
+             --train-episodes 2000 \
+             --save-steps 500 \
+             --restart-epsilon-steps 2000 \
+             --result-path "./results/TreasureHunter/decompose/restart_explore" \
+             --scenarios-path "./scenarios/TreasureHunter_easy.json" \
+             --load-path ./results/TreasureHunter\ /linear/decompose/TreasureHunter_decompose_.torch \
+             --lr 0.001 \
+             --gamma 0.99 \
+             --starting-episilon 0.5 \
+             --minimum-epsilon 0.1
 
 echo "Done"
