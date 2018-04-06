@@ -98,7 +98,8 @@ if __name__ == '__main__':
     parser.add_argument('--log-interval', type=int, default=5,
                         help='interval between training status logs (default: 5)')
     parser.add_argument('--no_cuda', action='store_true', default=False, help='Disables Cuda Usage')
-    parser.add_argument('--test', action='store_true', default=False, help='Disables Cuda Usage')
+    parser.add_argument('--test', action='store_true', default=False, help='Run only test')
+    parser.add_argument('--train', action='store_true', default=False, help='Run only train')
     parser.add_argument('--save-steps', type=int, default=1000, help='Will save after n steps')
     parser.add_argument('--restart-epsilon-steps', type=int, default=0,
                         help='Will restart epsilon after n steps. If 0 no restart')
@@ -146,4 +147,5 @@ if __name__ == '__main__':
     if not args.test:
         task_runner.train(training_episodes=args.train_episodes)
 
-    task_runner.test(test_episodes=args.test_episodes, render=args.render, sleep=args.sleep)
+    if not args.train:
+        task_runner.test(test_episodes=args.test_episodes, render=args.render, sleep=args.sleep)
