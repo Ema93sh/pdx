@@ -33,8 +33,8 @@ class BaseTaskRunner(object):
             cwd = os.getcwd()
             network_path = self.result_path if self.result_path != "" else "results/saved_models"
             network_path = os.path.join(cwd, network_path, self.file_name)
-            if not os.path.exists(os.dirname(plots_dir_path)):
-                os.makedirs(plots_dir_path)
+            if not os.path.exists(os.path.dirname(network_path)):
+                os.makedirs(os.path.dirname(network_path))
             torch.save(self.model.state_dict(), network_path)
 
     def summary_log(self, step, tag, value):

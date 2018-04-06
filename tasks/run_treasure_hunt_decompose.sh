@@ -8,11 +8,9 @@ python main.py --env TreasureHunter \
                --replay-capacity 200000 \
                --train-episodes 5000 \
                --save-steps 1000 \
-               --restart-epsilon-steps 0 \
                --gamma 0.99 \
                --lr 0.0009 \
                --result-path "./results/TreasureHunter/decompose/optimal" \
-               --scenarios-path "./scenarios/TreasureHunter.json" \
                --save
 
 echo "Done"

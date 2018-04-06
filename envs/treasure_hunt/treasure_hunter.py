@@ -22,7 +22,7 @@ class TreasureHunter(object):
         self.max_step = 100
         self.treasure_locations = self.map.get_all_treasure_locations()
         self.total_treasure = len(self.treasure_locations)
-        self.__image_window = None
+        self.image_window = None
         self.reward_types = self.total_treasure + 1
         self.get_action_meanings = ['Up', 'Right', 'Down', 'Left']
         self.get_reward_meanings = [ "(%d, %d)" % (location) for location in self.treasure_locations] + ["Lightning Strike"]
@@ -35,14 +35,16 @@ class TreasureHunter(object):
         self.current_step = 0
         self.treasure_found = treasure_found if treasure_found else [False for i in self.treasure_locations]
 
-        # print(self.treasure_found,len(self.treasure_found),len(self.treasure_locations),self.treasure_locations)
         if len(self.treasure_found) != len(self.treasure_locations):
+            print(len(self.treasure_found), len(self.treasure_locations))
             raise Exception("Treasure found dim and treasure location dim should be the same!")
 
 
+        # self.lightning_pos = self.generate_lightning()
         self.lightning_pos = []
         self.total_reward = 0
         self.current_reward = []
+
         return self.generate_state()
 
 
@@ -114,22 +116,16 @@ class TreasureHunter(object):
 
         opts = dict(title = title, width = 360, height = 350)
 
-        if self.__image_window is None:
-            self.__image_window = self.vis.image(obs_image, opts = opts)
+        if self.image_window is None:
+            self.image_window = self.vis.image(obs_image, opts = opts)
         else:
-            self.vis.image(obs_image, opts = opts, win = self.__image_window)
+            self.vis.image(obs_image, opts = opts, win = self.image_window)
 
 
     def __get_obs_image(self):
         shape = self.map.shape()
         img = np.zeros((3,) + shape)
         img[:] = 255
-
-        # color agent
-        row, col = self.agent_location
-        img[0, row, col] = 224
-        img[1, row, col] = 80
-        img[2, row, col] = 20
 
         # Treasure
         for i, consumed in enumerate(self.treasure_found):
@@ -155,6 +151,12 @@ class TreasureHunter(object):
             img[0, row, col] = 205
             img[1, row, col] = 133
             img[2, row, col] = 63
+
+        # color agent
+        row, col = self.agent_location
+        img[0, row, col] = 224
+        img[1, row, col] = 80
+        img[2, row, col] = 20
 
         return img
 

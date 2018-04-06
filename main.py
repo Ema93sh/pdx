@@ -3,6 +3,8 @@ import torch
 import os
 import visdom
 import json
+import sys
+
 from envs import FruitCollection1D, FruitCollection2D, TreasureHunter
 
 from models.q_model import QModel, QModelCNN
@@ -26,6 +28,7 @@ def get_env(args, viz):
         print("Loading scenarios...")
         scenarios = json.load(open(args.scenarios_path))
 
+
     state_representation = "grid" if args.cnn else "linear"
     env = env_map[args.env](hybrid=args.decompose, vis=viz, state_representation=state_representation,
                             map_name="10x10_easy")
@@ -45,6 +48,7 @@ def get_model(env, args):
         model = QModelCNN(len(state), env.action_space) if args.cnn else QModel(len(state), env.action_space)
 
     if args.load_path != "":
+        print("Loading model from...%s" % args.load_path)
         cwd = os.getcwd()
         network_path = os.path.join(cwd, args.load_path)
         model.load_state_dict(torch.load(network_path))
@@ -120,7 +124,7 @@ if __name__ == '__main__':
 
     # Network Config
     parser.add_argument('--cnn', action="store_true", default=False)
-    parser.add_argument('--load-path', default=False, help='Load model from this path')
+    parser.add_argument('--load-path', default="", help='Load model from this path')
     parser.add_argument('--save', action='store_true', default=False,
                         help='Save the model after training')
 
@@ -128,10 +132,24 @@ if __name__ == '__main__':
     parser.add_argument('--scenarios-path', type=str, default="",
                         help='Path to scenarios. Will run all the scenarios')
 
+    parser.add_argument('--render-scenarios', action='store_true', help='Render all the scenarios')
+
     args = parser.parse_args()
     viz = visdom.Visdom() if args.render else None
 
-    env, query_states_config = get_env(args, viz=viz)
+    env, scenarios = get_env(args, viz=viz)
+
+    if args.render_scenarios:
+        if len(scenarios) == 0:
+            print("No scenarios loaded!!!!!!!!!")
+
+        for scenario in scenarios:
+            env.image_window = None
+            print(scenario)
+            env.reset(**scenario)
+            env.render()
+        sys.exit(0)
+
 
     state = env.reset()
 
@@ -142,10 +160,10 @@ if __name__ == '__main__':
         torch.set_default_tensor_type('torch.cuda.FloatTensor')
         model = model.cuda()
 
-    task_runner = get_task_runner(env, model, args, query_states_config, viz=viz)
+    task_runner = get_task_runner(env, model, args, scenarios, viz=viz)
 
-    if not args.test:
+    if not args.test and not args.render_scenarios:
         task_runner.train(training_episodes=args.train_episodes)
 
-    if not args.train:
+    if not args.train and not args.render_scenarios:
         task_runner.test(test_episodes=args.test_episodes, render=args.render, sleep=args.sleep)

@@ -144,7 +144,7 @@ class DecomposedQTaskRunner(BaseTaskRunner):
             _q_values = _q_values.data.numpy().squeeze(1)
 
             gt_q = explanation.gt_q_values(self.env, self.model, current_config, self.env.action_space,
-                                           episodes=5, gamma=self.discount_factor)
+                                           episodes=10, gamma=self.discount_factor)
 
             _target_actions = [i for i in range(self.env.action_space) if i != state_action]
             predict_x, _ = explanation.get_pdx(_q_values, state_action, _target_actions)

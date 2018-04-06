@@ -21,6 +21,6 @@
 
   {
     "agent_location": [10, 10],
-    "treasure_found": [false, false, false, false, false, false, false, false]
+    "treasure_found": [true, true, true, true, false, true, false, false]
   }
 ]
