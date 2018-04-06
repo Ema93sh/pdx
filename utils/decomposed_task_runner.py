@@ -116,7 +116,7 @@ class DecomposedQTaskRunner(BaseTaskRunner):
         if not self.save_model:
             return
 
-        current_model_score = self.test(test_episodes = 5, log_steps=0)
+        current_model_score = self.test(test_episodes=5, log_steps=0)
         self.model.train()
         self.summary_log(episode + 1, "Test Score", current_model_score)
 
@@ -125,7 +125,6 @@ class DecomposedQTaskRunner(BaseTaskRunner):
             self.best_score = current_model_score
             self.save()
 
-
     def generate_explanation(self, episode):
         # Explanation
         if len(self.query_states) == 0:
@@ -133,6 +132,7 @@ class DecomposedQTaskRunner(BaseTaskRunner):
 
         explanation = Explanation()
         pdx_mse = 0
+        q_values_mse = 0
         for state_config in self.query_states:
             current_config = copy.deepcopy(state_config)
 
@@ -150,8 +150,11 @@ class DecomposedQTaskRunner(BaseTaskRunner):
             predict_x, _ = explanation.get_pdx(_q_values, state_action, _target_actions)
             target_x, _ = explanation.get_pdx(gt_q, state_action, _target_actions)
             pdx_mse += explanation.mse_pdx(predict_x, target_x)
+            q_values_mse += explanation.mse_pdx(_q_values, gt_q)
+
         pdx_mse /= len(self.query_states)
         self.summary_log(episode + 1, "MSE - PDX", pdx_mse)
+        self.summary_log(episode + 1, "MSE - Q-values", q_values_mse)
 
     def update_model(self):
         if len(self.replay_memory) < self.batch_size:
@@ -228,7 +231,6 @@ class DecomposedQTaskRunner(BaseTaskRunner):
 
         return test_score / test_episodes
 
-
     def render_q_values(self, action, cominded_q_values, q_values):
         # TODO clean up this mess
         explaination = Explanation()
@@ -255,7 +257,6 @@ class DecomposedQTaskRunner(BaseTaskRunner):
         )
         pdx_box_title = 'PDX'
 
-
         pdx_contribution_box_title = 'PDX Contribution(%)'
         cont_pdx_box_opts = dict(
             title='PDX Contribution(%)',
@@ -270,7 +271,6 @@ class DecomposedQTaskRunner(BaseTaskRunner):
             self.q_box = self.viz.bar(X=cominded_q_values.data.numpy()[0], opts=q_box_opts)
         else:
             self.viz.bar(X=cominded_q_values.data.numpy()[0], opts=q_box_opts, win=self.q_box)
-
 
         if self.decomposed_q_box is None:
             self.decomposed_q_box = self.viz.bar(X=q_values.T, opts=decomposed_q_box_opts)
@@ -295,7 +295,6 @@ class DecomposedQTaskRunner(BaseTaskRunner):
             self.pdx_box = self.viz.bar(X=np.array(pdx).T, opts=pdx_box_opts)
         else:
             self.viz.bar(X=np.array(pdx).T, opts=pdx_box_opts, win=self.pdx_box)
-
 
         if self.pdx_contribution_box is None:
             self.pdx_contribution_box = self.viz.bar(X=np.array(contribute).T, opts=cont_pdx_box_opts)

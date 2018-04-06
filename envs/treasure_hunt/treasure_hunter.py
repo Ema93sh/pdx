@@ -35,7 +35,7 @@ class TreasureHunter(object):
         self.current_step = 0
         self.treasure_found = treasure_found if treasure_found else [False for i in self.treasure_locations]
 
-
+        # print(self.treasure_found,len(self.treasure_found),len(self.treasure_locations),self.treasure_locations)
         if len(self.treasure_found) != len(self.treasure_locations):
             raise Exception("Treasure found dim and treasure location dim should be the same!")
 
