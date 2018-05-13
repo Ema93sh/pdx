@@ -20,6 +20,6 @@ nohup python main.py --env TreasureHunter \
                --scenarios-path "./scenarios/TreasureHunter_easy.json" \
                --load-path ./results/TreasureHunter/decompose/optimal/TreasureHunter_decompose_.torch \
                --starting-episilon 1 \
-               --minimum-epsilon 0.1 > "./results/TreasureHunter/decompose/average/run$number/run.log" &
+               --minimum-epsilon 0.1 >> "./results/TreasureHunter/decompose/average/run$number/run.log" &
 
 done
