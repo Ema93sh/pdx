@@ -4,6 +4,9 @@ import random
 import math
 import numpy as np
 import copy
+import threading
+from multiprocessing import Queue
+
 from torch.optim import Adam
 from torch.autograd import Variable
 import torch.nn.functional as F
@@ -126,6 +129,28 @@ class DecomposedQTaskRunner(BaseTaskRunner):
             self.best_score = current_model_score
             self.save()
 
+    def generate_for_state(self, id, state_config, q, explanation):
+        current_config = copy.deepcopy(state_config)
+
+        state = self.env.reset(**current_config)
+        state = Variable(torch.Tensor(state.tolist())).unsqueeze(0)
+
+        cominded_q_values, _q_values = self.model(state)
+        state_action = int(cominded_q_values.data.max(1)[1][0])
+        _q_values = _q_values.data.numpy().squeeze(1)
+
+        gt_q = explanation.gt_q_values(self.env, self.model, current_config, self.env.action_space,
+                                       episodes=10, gamma=self.discount_factor)
+
+        _target_actions = [i for i in range(self.env.action_space) if i != state_action]
+        predict_x, _ = explanation.get_pdx(_q_values, state_action, _target_actions)
+        target_x, _ = explanation.get_pdx(gt_q, state_action, _target_actions)
+        pdx_mse = explanation.mse_pdx(predict_x, target_x)
+        q_values_mse = explanation.mse_pdx(_q_values, gt_q)
+        q.put((pdx_mse,  q_values_mse))
+        print("Done", id)
+        return
+
     def generate_explanation(self, episode):
         # Explanation
         if len(self.query_states) == 0:
@@ -135,25 +160,26 @@ class DecomposedQTaskRunner(BaseTaskRunner):
         explanation = Explanation()
         pdx_mse = 0
         q_values_mse = 0
-        for state_config in self.query_states:
-            current_config = copy.deepcopy(state_config)
+        start_time = time.time()
 
-            state = self.env.reset(**current_config)
-            state = Variable(torch.Tensor(state.tolist())).unsqueeze(0)
+        T = []
+        multi_q = Queue()
+        for i, state_config in enumerate(self.query_states):
+            t = threading.Thread(target=self.generate_for_state, args = (i, state_config, multi_q, explanation))
+            t.daemon = True
+            t.start()
+            T.append(t)
 
-            cominded_q_values, _q_values = self.model(state)
-            state_action = int(cominded_q_values.data.max(1)[1][0])
-            _q_values = _q_values.data.numpy().squeeze(1)
+        for t in T:
+            t.join()
 
-            gt_q = explanation.gt_q_values(self.env, self.model, current_config, self.env.action_space,
-                                           episodes=10, gamma=self.discount_factor)
+        for t in T:
+            _pdx_mse, _q_values_mse = multi_q.get()
+            pdx_mse += _pdx_mse
+            q_values_mse += _q_values_mse
 
-            _target_actions = [i for i in range(self.env.action_space) if i != state_action]
-            predict_x, _ = explanation.get_pdx(_q_values, state_action, _target_actions)
-            target_x, _ = explanation.get_pdx(gt_q, state_action, _target_actions)
-            pdx_mse += explanation.mse_pdx(predict_x, target_x)
-            q_values_mse += explanation.mse_pdx(_q_values, gt_q)
-
+        end_time = time.time()
+        print("Done...Took %.2f seconds" % (end_time - start_time))
         pdx_mse /= len(self.query_states)
         self.summary_log(episode + 1, "MSE - PDX", pdx_mse)
         self.summary_log(episode + 1, "MSE - Q-values", q_values_mse)

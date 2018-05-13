@@ -1,8 +1,10 @@
 import numpy as np
 import torch
 import copy
+from functools import partial
 from torch.autograd import Variable
-
+import threading
+from multiprocessing import Queue
 
 class Explanation(object):
     """Explanation class related to generating explanations"""
@@ -36,37 +38,54 @@ class Explanation(object):
                         for r in range(len(q_values))]
         return pdx, contribution
 
+
+    def run_episode(self, episode, q, model, state_config, action_space, env, gamma):
+        current_config = copy.deepcopy(state_config)
+        episode_reward = []
+
+        for action in range(action_space):
+            _ = env.reset(**current_config)
+            rewards = []
+            state, reward, done, info = env.step(action)
+            rewards.append(reward)
+            ep_step = 0
+            while not done:
+                state = Variable(torch.Tensor(state.tolist())).unsqueeze(0)
+                cominded_q_values = model(state)
+
+                if len(cominded_q_values) == 2:  # TODO need a better way
+                    cominded_q_values = cominded_q_values[0]
+
+                action = int(cominded_q_values.data.max(1)[1])
+
+                state, reward, done, info = env.step(action)
+                rewards.append(((gamma ** ep_step) * np.array(reward)).tolist())
+                ep_step += 1
+            rewards = np.stack(rewards)
+            episode_reward.append(rewards.sum(0))
+        q.put(episode_reward)
+        return episode_reward
+
+
     def gt_q_values(self, env, model, state_config, action_space, episodes=1, gamma=0.99, exploration = False):
         """Estimate the ground truth Q-Values for a given state and it's action space"""
 
         expected_q_values = []
+        multi_q = Queue()
+        T = []
         for episode in range(episodes):
-            current_config = copy.deepcopy(state_config)
-            episode_reward = []
+            t = threading.Thread(target=self.run_episode, args = (episode, multi_q, model, state_config, action_space, env, gamma))
+            t.daemon = True
+            t.start()
+            T.append(t)
 
-            for action in range(action_space):
-                _ = env.reset(**current_config)
-                rewards = []
-                state, reward, done, info = env.step(action)
-                rewards.append(reward)
-                ep_step = 0
-                while not done:
-                    state = Variable(torch.Tensor(state.tolist())).unsqueeze(0)
-                    cominded_q_values = model(state)
 
-                    if len(cominded_q_values) == 2:  # TODO need a better way
-                        cominded_q_values = cominded_q_values[0]
+        for t in T:
+            t.join()
 
-                    action = int(cominded_q_values.data.max(1)[1])
+        for t in T:
+            expected_q_values.append(multi_q.get())
 
-                    state, reward, done, info = env.step(action)
-                    rewards.append(((gamma ** ep_step) * np.array(reward)).tolist())
-                    ep_step += 1
-
-                rewards = np.stack(rewards)
-                episode_reward.append(rewards.sum(0))
-
-            expected_q_values.append(episode_reward)
         expected_q_values = np.stack(expected_q_values, 1)
 
         q_values = expected_q_values.mean(1)

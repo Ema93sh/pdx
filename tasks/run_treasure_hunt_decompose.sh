@@ -1,11 +1,8 @@
-for number in 1 2 3 4 5 6
-do
-
-mkdir ./results/TreasureHunter/decompose/average/run$number
+mkdir -p ./results/TreasureHunter/decompose/average/run$number
 
 echo "Running with Replay $number" >> "./results/TreasureHunter/decompose/average/run$number/run.log"
 
-nohup python main.py --env TreasureHunter \
+python3 -u main.py --env TreasureHunter \
                --decompose \
                --log-interval 10  \
                --decay-rate 500 \
@@ -19,6 +16,4 @@ nohup python main.py --env TreasureHunter \
                --result-path "./results/TreasureHunter/decompose/average/run$number" \
                --scenarios-path "./scenarios/TreasureHunter_easy.json" \
                --starting-episilon 1 \
-               --minimum-epsilon 0.1 >> "./results/TreasureHunter/decompose/average/run$number/run.log" &
-
-done
+               --minimum-epsilon 0.1
