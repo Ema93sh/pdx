@@ -6,6 +6,7 @@ from collections import Counter
 
 import numpy as np
 import visdom
+import time
 
 from .env_map import EnvMap
 
@@ -67,6 +68,7 @@ class TreasureHunter(object):
 
 
     def generate_state(self):
+        start_time = time.time()
         agent_grid = np.zeros(self.map.shape())
         agent_grid[self.agent_location[0], self.agent_location[1]] = 1
 
@@ -87,19 +89,22 @@ class TreasureHunter(object):
             agent_grid = agent_grid.reshape(np.prod(agent_grid.shape))
             lightning_grid = lightning_grid.reshape(np.prod(lightning_grid.shape))
             state = np.concatenate((agent_grid, treasure_locations, lightning_grid))
+
         return state
 
     def generate_lightning(self):
         row, col = self.map.shape()
 
         lightning_pos = []
-
+        lightning_probability = self.map.get_all_lightning_probability()
 
         for i in range(row):
             for j in range(col):
-                prob = self.map.get_lightning_probability(i, j)
-                if np.random.choice([True, False], p = [prob, 1- prob]):
+                probability = lightning_probability[i][j]
+                if random.random() < probability:
                     lightning_pos.append((i, j))
+                # if np.random.choice([True, False], p = [prob, 1- prob]):
+                #     lightning_pos.append((i, j))
 
         return lightning_pos
 
@@ -162,15 +167,18 @@ class TreasureHunter(object):
 
 
 
-    def step(self, action):
+    def step(self, action, log_time=False):
         self.current_step += 1
 
         reward = [0] * (len(self.treasure_locations) + 1)
 
         self.move(action)
 
+        start_time = time.time()
         self.lightning_pos = self.generate_lightning()
+        end_time = time.time()
         struck_by_lightning = self.agent_location in self.lightning_pos
+
 
         if self.agent_location in self.treasure_locations:
             index = self.treasure_locations.index(self.agent_location)
@@ -191,7 +199,15 @@ class TreasureHunter(object):
 
         reward = reward if self.hybrid else sum(reward)
 
-        return self.generate_state(), reward, done, self.lightning_pos
+
+        state = self.generate_state()
+
+
+        if log_time:
+            print("Generate state time %.2f" %(end_time - start_time))
+        info =  {"state_gen_time": end_time - start_time, "lightning_pos": self.lightning_pos}
+
+        return state, reward, done, info
 
     def close(self):
         pass

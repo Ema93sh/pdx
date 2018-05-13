@@ -129,26 +129,30 @@ class DecomposedQTaskRunner(BaseTaskRunner):
             self.best_score = current_model_score
             self.save()
 
-    def generate_for_state(self, id, state_config, q, explanation):
+    def generate_for_state(self, id, env, model, state_config, q, explanation):
+        start_time = time.time()
         current_config = copy.deepcopy(state_config)
-
-        state = self.env.reset(**current_config)
+        state = env.reset(**current_config)
         state = Variable(torch.Tensor(state.tolist())).unsqueeze(0)
 
-        cominded_q_values, _q_values = self.model(state)
+        cominded_q_values, _q_values = model(state)
         state_action = int(cominded_q_values.data.max(1)[1][0])
         _q_values = _q_values.data.numpy().squeeze(1)
 
-        gt_q = explanation.gt_q_values(self.env, self.model, current_config, self.env.action_space,
+        gt_start_time = time.time()
+        gt_q = explanation.gt_q_values(env, model, current_config, env.action_space,
                                        episodes=10, gamma=self.discount_factor)
-
-        _target_actions = [i for i in range(self.env.action_space) if i != state_action]
+        gt_end_time = time.time()
+        gt_time = gt_end_time - gt_start_time
+        _target_actions = [i for i in range(env.action_space) if i != state_action]
         predict_x, _ = explanation.get_pdx(_q_values, state_action, _target_actions)
         target_x, _ = explanation.get_pdx(gt_q, state_action, _target_actions)
         pdx_mse = explanation.mse_pdx(predict_x, target_x)
         q_values_mse = explanation.mse_pdx(_q_values, gt_q)
         q.put((pdx_mse,  q_values_mse))
-        print("Done", id)
+        end_time = time.time()
+        print("Done running scenario %d, %.2f with gt time %.2f" % (id, end_time - start_time, gt_time))
+        
         return
 
     def generate_explanation(self, episode):
@@ -165,7 +169,9 @@ class DecomposedQTaskRunner(BaseTaskRunner):
         T = []
         multi_q = Queue()
         for i, state_config in enumerate(self.query_states):
-            t = threading.Thread(target=self.generate_for_state, args = (i, state_config, multi_q, explanation))
+            env = copy.deepcopy(self.env)
+            model = copy.deepcopy(self.model)
+            t = threading.Thread(target=self.generate_for_state, args = (i, env, model, state_config, multi_q, explanation))
             t.daemon = True
             t.start()
             T.append(t)

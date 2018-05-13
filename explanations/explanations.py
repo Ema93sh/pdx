@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import time
 import copy
 from functools import partial
 from torch.autograd import Variable
@@ -42,7 +43,10 @@ class Explanation(object):
     def run_episode(self, episode, q, model, state_config, action_space, env, gamma):
         current_config = copy.deepcopy(state_config)
         episode_reward = []
-
+        start_time = time.time()
+        model_time = 0
+        env_time = 0
+        state_gen_time = 0
         for action in range(action_space):
             _ = env.reset(**current_config)
             rewards = []
@@ -51,18 +55,27 @@ class Explanation(object):
             ep_step = 0
             while not done:
                 state = Variable(torch.Tensor(state.tolist())).unsqueeze(0)
+                model_start_time = time.time()
                 cominded_q_values = model(state)
+                model_end_time = time.time()
+                model_time += model_end_time - model_start_time
 
                 if len(cominded_q_values) == 2:  # TODO need a better way
                     cominded_q_values = cominded_q_values[0]
 
                 action = int(cominded_q_values.data.max(1)[1])
 
+                env_start_time = time.time()
                 state, reward, done, info = env.step(action)
+                env_end_time = time.time()
+                state_gen_time += info["state_gen_time"]
+                env_time += env_end_time - env_start_time
                 rewards.append(((gamma ** ep_step) * np.array(reward)).tolist())
                 ep_step += 1
             rewards = np.stack(rewards)
             episode_reward.append(rewards.sum(0))
+        end_time = time.time()
+        print("Done running episode %d with %d step took %.2fs model time %.2fs env time %.2f state gen time %.2f " % (episode, ep_step, end_time - start_time, model_time, env_time, state_gen_time))
         q.put(episode_reward)
         return episode_reward
 
@@ -74,7 +87,10 @@ class Explanation(object):
         multi_q = Queue()
         T = []
         for episode in range(episodes):
-            t = threading.Thread(target=self.run_episode, args = (episode, multi_q, model, state_config, action_space, env, gamma))
+            _env = copy.deepcopy(env)
+            _model = copy.deepcopy(model)
+            _state_config = copy.deepcopy(state_config)
+            t = threading.Thread(target=self.run_episode, args = (episode, multi_q, _model, _state_config, action_space, _env, gamma))
             t.daemon = True
             t.start()
             T.append(t)

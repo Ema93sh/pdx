@@ -25,6 +25,15 @@ class EnvMap(object):
                     wall_locations.append( (row, col) )
         return wall_locations
 
+    def get_all_lightning_probability(self):
+        lightning_probability = []
+        for row in range(len(self.grid)):
+            r = []
+            for col in range(len(self.grid[row])):
+                r.append( self.get_lightning_probability(row, col) )
+            lightning_probability.append(r)
+        return lightning_probability
+
 
     def load_map(self):
         self.grid = []
