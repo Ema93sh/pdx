@@ -20,7 +20,8 @@ def get_env(args, viz):
     env_map = {
         "FruitCollection1D": FruitCollection1D,
         "FruitCollection2D": FruitCollection2D,
-        "TreasureHunter": TreasureHunter
+        "TreasureHunter": TreasureHunter,
+        "Traveller": None
     }
 
     scenarios = []
@@ -77,7 +78,8 @@ def get_task_runner(env, model, args, query_states, viz=None):
         "save_steps": args.save_steps,
         "restart_epsilon_steps": args.restart_epsilon_steps,
         "starting_episilon": args.starting_episilon,
-        "minimum_epsilon": args.minimum_epsilon
+        "minimum_epsilon": args.minimum_epsilon,
+        "prioritized_replay": args.pr
     }
 
     if args.decompose:
@@ -121,6 +123,7 @@ if __name__ == '__main__':
     parser.add_argument('--target-update-frequency', type=int, default=50, help='Update frequency for target')
     parser.add_argument('--update-frequency', type=int, default=5, help='model update frequency')
     parser.add_argument('--lr', type=float, default=0.01, help='Learning Rate for Training (Adam Optimizer)')
+    parser.add_argument('--pr', action="store_true", default=False, help='Use prioritized_replay')
 
     # Network Config
     parser.add_argument('--cnn', action="store_true", default=False)

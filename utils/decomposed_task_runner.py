@@ -97,6 +97,7 @@ class DecomposedQTaskRunner(BaseTaskRunner):
 
                 if self.global_steps % self.save_steps == 0:
                     self.save_best_model(episode)
+                    self.save_summaries()
                     self.generate_explanation(episode)
                     self.plot_summaries()
 
@@ -130,6 +131,7 @@ class DecomposedQTaskRunner(BaseTaskRunner):
         if len(self.query_states) == 0:
             return
 
+        print("Generating explanation....%d step" % self.global_steps)
         explanation = Explanation()
         pdx_mse = 0
         q_values_mse = 0
@@ -186,7 +188,7 @@ class DecomposedQTaskRunner(BaseTaskRunner):
 
         loss = self.loss_fn(q_values, target_q_values)
 
-        self.summary_log(self.global_steps, "Loss", loss.data)
+        self.summary_log(self.global_steps, "Loss", loss.data[0])
 
         update_start_time = time.time()
 

@@ -1,5 +1,6 @@
 import os
 import torch
+import pickle
 
 import matplotlib.pyplot as plt
 from .replay_memory import ReplayMemory, Transition
@@ -43,6 +44,15 @@ class BaseTaskRunner(object):
             self.summaries[tag].append((step, value))
         else:
             self.summaries[tag] = [(step, value)]
+
+    def save_summaries(self):
+        cwd = os.getcwd()
+        plots_dir_path = os.path.join(cwd, self.result_path)
+        if not os.path.exists(plots_dir_path):
+            os.makedirs(plots_dir_path)
+
+        with open(os.path.join(plots_dir_path, "summaries.pickle"), "wb") as file:
+            pickle.dump(self.summaries, file, protocol=pickle.HIGHEST_PROTOCOL)
 
     def plot_summaries(self):
         cwd = os.getcwd()

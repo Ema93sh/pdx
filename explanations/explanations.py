@@ -36,7 +36,7 @@ class Explanation(object):
                         for r in range(len(q_values))]
         return pdx, contribution
 
-    def gt_q_values(self, env, model, state_config, action_space, episodes=1, gamma=0.99):
+    def gt_q_values(self, env, model, state_config, action_space, episodes=1, gamma=0.99, exploration = False):
         """Estimate the ground truth Q-Values for a given state and it's action space"""
 
         expected_q_values = []
