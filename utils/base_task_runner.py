@@ -2,6 +2,9 @@ import os
 import torch
 import pickle
 
+import matplotlib
+matplotlib.use("Agg")
+
 import matplotlib.pyplot as plt
 from .replay_memory import ReplayMemory, Transition
 
