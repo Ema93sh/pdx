@@ -70,11 +70,18 @@ class DecomposedQTaskRunner(BaseTaskRunner):
             state = self.env.reset()
             total_reward = 0
             state = Variable(torch.Tensor(state.tolist())).unsqueeze(0)
-
+            episode_time = time.time()
+            total_decision_time = 0
+            update_time = 0
             for step in range(max_steps):
                 self.global_steps += 1
 
+                decision_time = time.time()
                 action = self.select_action(state, restart_epsilon)
+                decision_time = time.time() - decision_time
+
+                total_decision_time += decision_time
+
                 restart_epsilon = False
 
                 next_state, reward, done, info = self.env.step(int(action))
@@ -89,7 +96,9 @@ class DecomposedQTaskRunner(BaseTaskRunner):
                 state = next_state
 
                 if self.global_steps % self.update_frequency == 0:
+                    step_update_time = time.time()
                     self.update_model()
+                    update_time += (time.time() - step_update_time)
 
                 if self.global_steps % self.target_update_frequency == 0:
                     self.target_model.clone_from(self.model)
@@ -104,12 +113,13 @@ class DecomposedQTaskRunner(BaseTaskRunner):
                     self.plot_summaries()
 
                 if done:
+                    episode_time =  time.time() - episode_time
                     self.summary_log(episode + 1, "Total Reward", total_reward)
                     self.summary_log(episode + 1, "Epsilon", self.epsilon)
                     self.summary_log(episode + 1, "Total Step", step + 1)
                     if episode % self.log_interval == 0:
-                        print(
-                            "Training Episode %d total reward %d with steps %d" % (episode + 1, total_reward, step + 1))
+                        print("Training Episode %d total reward %d with steps %d. " % (episode + 1, total_reward, step + 1))
+                        print("Total Time %.2f Decision Time %.2f Update Time %.2f" %(episode_time, total_decision_time, update_time))
                     break
 
         self.save_best_model(episode)
@@ -139,8 +149,9 @@ class DecomposedQTaskRunner(BaseTaskRunner):
         _q_values = _q_values.data.numpy().squeeze(1)
 
         gt_start_time = time.time()
+        epsilon = self.epsilon if self.explore_gt else 0
         gt_q = explanation.gt_q_values(env, model, current_config, env.action_space,
-                                       episodes=10, gamma=self.discount_factor, epsilon = self.epsilon)
+                                       episodes=10, gamma=self.discount_factor, epsilon = epsilon)
         gt_end_time = time.time()
         gt_time = gt_end_time - gt_start_time
         _target_actions = [i for i in range(env.action_space) if i != state_action]
@@ -149,7 +160,7 @@ class DecomposedQTaskRunner(BaseTaskRunner):
         pdx_mse = explanation.mse_pdx(predict_x, target_x)
         q_values_mse = explanation.mse_pdx(_q_values, gt_q)
         end_time = time.time()
-        print("Done running scenario %d, %.2f with gt time %.2f" % (id, end_time - start_time, gt_time))
+        print("Done running scenario %d, %.2f with total time %.2f with epsilon %.2f" % (id, end_time - start_time, gt_time, epsilon))
         q.put((pdx_mse,  q_values_mse))
         return
 
@@ -246,14 +257,15 @@ class DecomposedQTaskRunner(BaseTaskRunner):
                 q_values = q_values.squeeze(1).data.numpy()
                 action = int(cominded_q_values.data.max(1)[1])
 
-                next_state, reward, done, info = self.env.step(action)
-                total_reward += sum(reward)
-                state = Variable(torch.Tensor(next_state.tolist())).unsqueeze(0)
-
                 if render:
                     self.env.render()
                     self.render_q_values(action, cominded_q_values, q_values)
                     time.sleep(sleep)
+
+                next_state, reward, done, info = self.env.step(action)
+                total_reward += sum(reward)
+                state = Variable(torch.Tensor(next_state.tolist())).unsqueeze(0)
+
 
                 if done:
                     test_score += total_reward

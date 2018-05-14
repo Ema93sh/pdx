@@ -79,7 +79,8 @@ def get_task_runner(env, model, args, query_states, viz=None):
         "restart_epsilon_steps": args.restart_epsilon_steps,
         "starting_episilon": args.starting_episilon,
         "minimum_epsilon": args.minimum_epsilon,
-        "prioritized_replay": args.pr
+        "prioritized_replay": args.pr,
+        "explore_gt": args.explore_gt
     }
 
     if args.decompose:
@@ -136,6 +137,7 @@ if __name__ == '__main__':
                         help='Path to scenarios. Will run all the scenarios')
 
     parser.add_argument('--render-scenarios', action='store_true', help='Render all the scenarios')
+    parser.add_argument('--explore-gt', action='store_true', default=False, help='Use exploration for ground truth')
 
     args = parser.parse_args()
     viz = visdom.Visdom() if args.render else None

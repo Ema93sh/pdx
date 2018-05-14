@@ -47,11 +47,12 @@ class TaskRunner(BaseTaskRunner):
     def train(self, training_episodes = 5000, max_steps = 10000):
         self.model.train()
         restart_epsilon = False
+        total_time = 0
         for episode in range(training_episodes):
             state = self.env.reset()
             total_reward = 0
             state = Variable(torch.Tensor(state.tolist())).unsqueeze(0)
-
+            episode_start_time = time.time()
             for step in range(max_steps):
                 self.global_steps += 1
 
@@ -83,11 +84,13 @@ class TaskRunner(BaseTaskRunner):
                     self.save()
 
                 if done:
+                    episode_end_time = time.time()
+                    episode_time = episode_end_time - episode_start_time
                     self.summary_log(episode + 1, "Total Reward", total_reward)
                     self.summary_log(episode + 1, "Epsilon", self.epsilon)
                     self.summary_log(episode + 1, "Total Step", step + 1)
                     if episode % self.log_interval == 0:
-                        print("Training Episode %d total reward %d with steps %d" % (episode + 1, total_reward, step + 1))
+                        print("Training Episode %d total reward %d with steps %d. Total Time %.2f" % (episode + 1, total_reward, step + 1, episode_time))
                     break
 
         self.plot_summaries()
@@ -97,7 +100,7 @@ class TaskRunner(BaseTaskRunner):
         # Explanation
         if len(self.query_states) == 0:
             return
-            
+
         explanation = Explanation()
         pdx_mse = 0
         for state_config in self.query_states:
@@ -158,7 +161,7 @@ class TaskRunner(BaseTaskRunner):
         self.optimizer.step()
 
 
-    def test(self, test_episodes= 100, max_steps = 100, render = False, sleep=1):
+    def test(self, test_episodes = 100, max_steps = 100, render = False, sleep=1):
         self.model.eval()
 
         q_box_opts = dict(
@@ -184,7 +187,7 @@ class TaskRunner(BaseTaskRunner):
                     if q_box is None:
                         q_box = self.viz.bar( X = q_values.numpy()[0], opts=q_box_opts)
                     else:
-                        self.viz.bar( X =q_values.numpy()[0], opts=q_box_opts, win=q_box)
+                        self.viz.bar( X = q_values.numpy()[0], opts=q_box_opts, win=q_box)
 
                     time.sleep(sleep)
 

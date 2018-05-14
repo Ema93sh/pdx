@@ -41,6 +41,7 @@ class Explanation(object):
 
 
     def run_episode(self, episode, q, model, state_config, action_space, env, gamma, epsilon):
+        model.eval()
         current_config = copy.deepcopy(state_config)
         episode_reward = []
         start_time = time.time()

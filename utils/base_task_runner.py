@@ -30,6 +30,7 @@ class BaseTaskRunner(object):
         self.starting_epsilon = config['starting_episilon']
         self.minimum_epsilon = config['minimum_epsilon']
         self.restart_epsilon_steps = config["restart_epsilon_steps"]
+        self.explore_gt = config["explore_gt"]
 
 
     def save(self):
