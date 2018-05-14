@@ -24,12 +24,23 @@ def plot_summaries(summaries, tags, result_path):
         x_values = x_values.mean(0)
 
         y_values = np.array([np.array(list(map(lambda x: x[1], summary[title]))[:min_len]) for summary in summaries])
+        min_y_values = y_values.min(0)
+        max_y_values = y_values.max(0)
+        std_y_values = y_values.std(0)
         y_values = y_values.mean(0)
-
         plt.plot(x_values, y_values)
+        plt.fill_between(x_values, min_y_values, max_y_values, color = '#539caf', alpha = 0.4, label = '95% CI')
         plt.grid(True)
         plt.title(title)
         plt.savefig(os.path.join(plots_dir_path, title + ".png"))
+        plt.clf()
+
+        N = 5
+        mv_avg = np.convolve(y_values, np.ones((N,))/N, mode='valid')
+        plt.plot(x_values[:len(mv_avg)], mv_avg)
+        plt.grid(True)
+        plt.title(title)
+        plt.savefig(os.path.join(plots_dir_path, title + "_moving_avg.png"))
         plt.clf()
 
 def get_summaries_path(path):
@@ -42,9 +53,10 @@ def get_summaries_path(path):
 
 
 def main():
-    path = "./results/TreasureHunter/decompose/average"
+    path = "./results/TreasureHunter/decompose/merged"
     summary_paths = get_summaries_path(path)
     summaries = load_summaries(summary_paths)
+    print(len(summaries))
     tags = ["Total Reward", "MSE - PDX", "Epsilon", "MSE - Q-values", "Total Step"]
     result_path = os.path.join(path, "merged")
     plot_summaries(summaries, tags, result_path)

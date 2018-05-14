@@ -149,10 +149,9 @@ class DecomposedQTaskRunner(BaseTaskRunner):
         target_x, _ = explanation.get_pdx(gt_q, state_action, _target_actions)
         pdx_mse = explanation.mse_pdx(predict_x, target_x)
         q_values_mse = explanation.mse_pdx(_q_values, gt_q)
-        q.put((pdx_mse,  q_values_mse))
         end_time = time.time()
         print("Done running scenario %d, %.2f with gt time %.2f" % (id, end_time - start_time, gt_time))
-        
+        q.put((pdx_mse,  q_values_mse))
         return
 
     def generate_explanation(self, episode):

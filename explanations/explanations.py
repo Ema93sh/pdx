@@ -40,7 +40,7 @@ class Explanation(object):
         return pdx, contribution
 
 
-    def run_episode(self, episode, q, model, state_config, action_space, env, gamma):
+    def run_episode(self, episode, q, model, state_config, action_space, env, gamma, epsilon):
         current_config = copy.deepcopy(state_config)
         episode_reward = []
         start_time = time.time()
@@ -54,16 +54,19 @@ class Explanation(object):
             rewards.append(reward)
             ep_step = 0
             while not done:
-                state = Variable(torch.Tensor(state.tolist())).unsqueeze(0)
-                model_start_time = time.time()
-                cominded_q_values = model(state)
-                model_end_time = time.time()
-                model_time += model_end_time - model_start_time
+                should_explore = np.random.choice([True, False], p=[epsilon, 1 - epsilon])
+                if should_explore:
+                    state = Variable(torch.Tensor(state.tolist())).unsqueeze(0)
+                    model_start_time = time.time()
+                    cominded_q_values = model(state)
+                    model_end_time = time.time()
+                    model_time += model_end_time - model_start_time
+                    if len(cominded_q_values) == 2:  # TODO need a better way
+                        cominded_q_values = cominded_q_values[0]
 
-                if len(cominded_q_values) == 2:  # TODO need a better way
-                    cominded_q_values = cominded_q_values[0]
-
-                action = int(cominded_q_values.data.max(1)[1])
+                    action = int(cominded_q_values.data.max(1)[1])
+                else:
+                    action = np.random.choice(action_space)
 
                 env_start_time = time.time()
                 state, reward, done, info = env.step(action)
@@ -75,12 +78,12 @@ class Explanation(object):
             rewards = np.stack(rewards)
             episode_reward.append(rewards.sum(0))
         end_time = time.time()
-        print("Done running episode %d with %d step took %.2fs model time %.2fs env time %.2f state gen time %.2f " % (episode, ep_step, end_time - start_time, model_time, env_time, state_gen_time))
+        # print("Done running episode %d with %d step took %.2fs model time %.2fs env time %.2f state gen time %.2f " % (episode, ep_step, end_time - start_time, model_time, env_time, state_gen_time))
         q.put(episode_reward)
         return episode_reward
 
 
-    def gt_q_values(self, env, model, state_config, action_space, episodes=1, gamma=0.99, exploration = False):
+    def gt_q_values(self, env, model, state_config, action_space, episodes=1, gamma=0.99, epsilon = 0):
         """Estimate the ground truth Q-Values for a given state and it's action space"""
 
         expected_q_values = []
@@ -90,7 +93,7 @@ class Explanation(object):
             _env = copy.deepcopy(env)
             _model = copy.deepcopy(model)
             _state_config = copy.deepcopy(state_config)
-            t = threading.Thread(target=self.run_episode, args = (episode, multi_q, _model, _state_config, action_space, _env, gamma))
+            t = threading.Thread(target=self.run_episode, args = (episode, multi_q, _model, _state_config, action_space, _env, gamma, epsilon))
             t.daemon = True
             t.start()
             T.append(t)
