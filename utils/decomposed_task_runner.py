@@ -43,7 +43,6 @@ class DecomposedQTaskRunner(BaseTaskRunner):
         self.q_box = None
 
     def select_action(self, state, restart_epsilon = False):
-        sample = random.random()
         self.current_epsilon_step += 1
 
         if restart_epsilon:
@@ -141,7 +140,7 @@ class DecomposedQTaskRunner(BaseTaskRunner):
 
         gt_start_time = time.time()
         gt_q = explanation.gt_q_values(env, model, current_config, env.action_space,
-                                       episodes=10, gamma=self.discount_factor)
+                                       episodes=10, gamma=self.discount_factor, epsilon = self.epsilon)
         gt_end_time = time.time()
         gt_time = gt_end_time - gt_start_time
         _target_actions = [i for i in range(env.action_space) if i != state_action]

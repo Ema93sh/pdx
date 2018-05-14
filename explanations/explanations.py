@@ -56,6 +56,8 @@ class Explanation(object):
             while not done:
                 should_explore = np.random.choice([True, False], p=[epsilon, 1 - epsilon])
                 if should_explore:
+                    action = np.random.choice(action_space)
+                else:
                     state = Variable(torch.Tensor(state.tolist())).unsqueeze(0)
                     model_start_time = time.time()
                     cominded_q_values = model(state)
@@ -63,10 +65,7 @@ class Explanation(object):
                     model_time += model_end_time - model_start_time
                     if len(cominded_q_values) == 2:  # TODO need a better way
                         cominded_q_values = cominded_q_values[0]
-
                     action = int(cominded_q_values.data.max(1)[1])
-                else:
-                    action = np.random.choice(action_space)
 
                 env_start_time = time.time()
                 state, reward, done, info = env.step(action)
@@ -78,7 +77,7 @@ class Explanation(object):
             rewards = np.stack(rewards)
             episode_reward.append(rewards.sum(0))
         end_time = time.time()
-        # print("Done running episode %d with %d step took %.2fs model time %.2fs env time %.2f state gen time %.2f " % (episode, ep_step, end_time - start_time, model_time, env_time, state_gen_time))
+        # print("Done running episode %d with %d step took %.2fs model time %.2fs env time %.2f state gen time %.2f epsilon %.2f " % (episode, ep_step, end_time - start_time, model_time, env_time, state_gen_time, epsilon))
         q.put(episode_reward)
         return episode_reward
 
