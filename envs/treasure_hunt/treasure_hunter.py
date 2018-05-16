@@ -24,6 +24,7 @@ class TreasureHunter(object):
         self.treasure_locations = self.map.get_all_treasure_locations()
         self.total_treasure = len(self.treasure_locations)
         self.image_window = None
+        self.heatmap_window = None
         self.reward_types = self.total_treasure + 1
         self.get_action_meanings = ['Up', 'Right', 'Down', 'Left']
         self.get_reward_meanings = [ "(%d, %d)" % (location) for location in self.treasure_locations] + ["Lightning Strike"]
@@ -120,6 +121,13 @@ class TreasureHunter(object):
                     .format(self.name, total_treasure_found, self.total_reward, self.current_reward, self.current_step)
 
         opts = dict(title = title, width = 360, height = 350)
+        lightning_probability = np.array(self.map.get_all_lightning_probability()[::-1])
+
+        if self.heatmap_window is None:
+            self.heatmap_window = self.vis.heatmap(lightning_probability)
+        else:
+            self.vis.heatmap(lightning_probability, win = self.heatmap_window)
+
 
         if self.image_window is None:
             self.image_window = self.vis.image(obs_image, opts = opts)

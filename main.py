@@ -101,7 +101,7 @@ if __name__ == '__main__':
     parser.add_argument('--env', default="FruitCollection1D",
                         help='Train the network from scratch ( or Does not load pre-trained model)')
     parser.add_argument('--decompose', action='store_true', help='Decompose Q Values')
-    parser.add_argument('--sleep', type=int, help='Sleep time for render', default=1)
+    parser.add_argument('--sleep', type=float, help='Sleep time for render', default=1)
     parser.add_argument('--log-interval', type=int, default=5,
                         help='interval between training status logs (default: 5)')
     parser.add_argument('--no_cuda', action='store_true', default=False, help='Disables Cuda Usage')

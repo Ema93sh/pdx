@@ -2,6 +2,8 @@ import pickle
 import numpy as np
 import os
 import matplotlib.pyplot as plt
+import argparse
+
 
 def load_summaries(summary_paths):
     summaries = []
@@ -43,6 +45,7 @@ def plot_summaries(summaries, tags, result_path):
         plt.savefig(os.path.join(plots_dir_path, title + "_moving_avg.png"))
         plt.clf()
 
+
 def get_summaries_path(path):
     summaries_path = []
     dirs = os.listdir(path)
@@ -53,7 +56,8 @@ def get_summaries_path(path):
 
 
 def main():
-    path = "./results/TreasureHunter/decompose/merged"
+    args = parser.parse_args()
+    path = "./results/TreasureHunter/decompose/explore"
     summary_paths = get_summaries_path(path)
     summaries = load_summaries(summary_paths)
     print(len(summaries))

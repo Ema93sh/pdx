@@ -9,13 +9,13 @@ python3 -u main.py --env TreasureHunter \
                    --target-update-frequency 60 \
                    --update-frequency 2 \
                    --replay-capacity 50000 \
-                   --train-episodes 5000 \
-                   --save-steps 2000 \
+                   --train-episodes 7000 \
+                   --save-steps 200 \
                    --lr 0.00029 \
                    --gamma 0.99 \
                    --result-path "./results/TreasureHunter/decompose/optimal" \
-                   --starting-episilon 1 \
+                   --load-path "./results/TreasureHunter/decompose/optimal/TreasureHunter_decompose_.torch" \
+                   --starting-episilon 0.1 \
                    --save \
                    --minimum-epsilon 0.1 >> "./results/TreasureHunter/decompose/optimal/run.log"
 echo "Done"
-done

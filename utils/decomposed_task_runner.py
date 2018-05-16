@@ -1,9 +1,11 @@
 import torch
 import time
+import os
 import random
 import math
 import numpy as np
 import copy
+import pickle
 import threading
 from multiprocessing import Queue
 
@@ -38,7 +40,9 @@ class DecomposedQTaskRunner(BaseTaskRunner):
         self.viz = viz
         self.query_states = query_states
         self.decomposed_q_box = None
-        self.pdx_box = None
+        self.pdx_box = {}
+        self.mse_pdx_box = None
+        self.min_pdx_box = {}
         self.pdx_contribution_box = None
         self.q_box = None
 
@@ -53,13 +57,11 @@ class DecomposedQTaskRunner(BaseTaskRunner):
         should_explore = np.random.choice([True, False], p=[self.epsilon, 1 - self.epsilon])
 
         if not should_explore:
-            cominded_q_values, q_values = self.model(state)
-            return cominded_q_values.data.max(1)[1]
+            combined_q_values, q_values = self.model(state)
+            return combined_q_values.data.max(1)[1]
         else:
             return LongTensor([random.randrange(self.action_space)])
 
-    def explore_policy(self):
-        pass
 
     def train(self, training_episodes=5000, max_steps=10000):
         self.model.train()
@@ -133,7 +135,7 @@ class DecomposedQTaskRunner(BaseTaskRunner):
         self.model.train()
         self.summary_log(episode + 1, "Test Score", current_model_score)
 
-        if self.best_score < current_model_score:
+        if self.best_score <= current_model_score:
             print("Best Score...", current_model_score)
             self.best_score = current_model_score
             self.save()
@@ -144,8 +146,8 @@ class DecomposedQTaskRunner(BaseTaskRunner):
         state = env.reset(**current_config)
         state = Variable(torch.Tensor(state.tolist())).unsqueeze(0)
 
-        cominded_q_values, _q_values = model(state)
-        state_action = int(cominded_q_values.data.max(1)[1][0])
+        combined_q_values, _q_values = model(state)
+        state_action = int(combined_q_values.data.max(1)[1][0])
         _q_values = _q_values.data.numpy().squeeze(1)
 
         gt_start_time = time.time()
@@ -246,6 +248,8 @@ class DecomposedQTaskRunner(BaseTaskRunner):
         self.model.eval()
 
         test_score = 0
+        explanation = Explanation()
+        mse_summaries = {}
 
         for episode in range(test_episodes):
             state = self.env.reset()
@@ -253,19 +257,41 @@ class DecomposedQTaskRunner(BaseTaskRunner):
             state = Variable(torch.Tensor(state.tolist())).unsqueeze(0)
 
             for step in range(max_steps):
-                cominded_q_values, q_values = self.model(state)
+                combined_q_values, q_values = self.model(state)
                 q_values = q_values.squeeze(1).data.numpy()
-                action = int(cominded_q_values.data.max(1)[1])
+                action = int(combined_q_values.data.max(1)[1])
+                target_actions = [i for i in range(self.env.action_space) if i != action]
+
+                for target_action in target_actions:
+                    pdx = np.array(explanation.get_pdx(q_values, action, [target_action])).squeeze()
+                    pdx = sorted(pdx, key = lambda x: -x)
+                    mse_pdx = explanation.get_minimum_pdx(pdx)
+                    n = len(mse_pdx)
+                    state_info = {
+                                  "agent_location" : self.env.agent_location,
+                                  "treasure_found":self.env.treasure_found,
+                                  "action": self.env.get_action_meanings[action],
+                                  "target_action": self.env.get_action_meanings[target_action]
+                                 }
+                    if n not in mse_summaries:
+                        mse_summaries[n] = [state_info]
+                    else:
+                        mse_summaries[n].append(state_info)
 
                 if render:
+                    self.clear_windows()
                     self.env.render()
-                    self.render_q_values(action, cominded_q_values, q_values)
-                    time.sleep(sleep)
+                    self.render_q_values(action, combined_q_values, q_values)
+                    self.render_all_pdx(action, q_values, explanation)
+                    self.render_mse_pdx(mse_summaries)
+                    if sleep == 0:
+                        input("Press Enter to continue...")
+                    else:
+                        time.sleep(sleep)
 
                 next_state, reward, done, info = self.env.step(action)
                 total_reward += sum(reward)
                 state = Variable(torch.Tensor(next_state.tolist())).unsqueeze(0)
-
 
                 if done:
                     test_score += total_reward
@@ -273,12 +299,91 @@ class DecomposedQTaskRunner(BaseTaskRunner):
                         print("Test Episode %d total reward %d with steps %d" % (episode + 1, total_reward, step + 1))
                     break
 
+        self.save_mse_summaries(mse_summaries)
+
         return test_score / test_episodes
 
-    def render_q_values(self, action, cominded_q_values, q_values):
-        # TODO clean up this mess
-        explaination = Explanation()
+    def save_mse_summaries(self, summary):
+        cwd = os.getcwd()
+        save_path = os.path.join(cwd, self.result_path)
+        if not os.path.exists(save_path):
+            os.makedirs(save_path)
 
+        with open(os.path.join(save_path, "mse_summaries.pickle"), "wb") as file:
+            pickle.dump(summary, file, protocol=pickle.HIGHEST_PROTOCOL)
+
+    def clear_windows(self):
+        for box in self.pdx_box.values():
+            self.viz.close(box)
+
+        for box in self.min_pdx_box.values():
+            self.viz.close(box)
+
+
+    def render_mse_pdx(self, mse_summaries):
+        data = np.array(list(map(lambda x: len(mse_summaries[x]), sorted(mse_summaries.keys()))))
+        x = sorted(mse_summaries.keys())
+        mse_pdx_box_opts = dict(
+            title = "Number of MSE PDX",
+            stacked = False,
+            rownames = x,
+            xtickstep=0.5,
+            xtickmin=1,
+            xtick = True
+        )
+        if self.mse_pdx_box is None:
+            self.mse_pdx_box = self.viz.bar(X=data, opts=mse_pdx_box_opts)
+        else:
+            self.viz.bar(X=data, opts=mse_pdx_box_opts, win=self.mse_pdx_box)
+
+
+    def render_all_pdx(self, action, q_values, explanation):
+        for target_action in range(self.env.action_space):
+            if action != target_action:
+                self.render_pdx(q_values, action, target_action, explanation)
+
+
+    def render_pdx(self, q_values, action, target_action, explanation):
+        action_name = self.env.get_action_meanings[action]
+        target_action_name = self.env.get_action_meanings[target_action]
+        title = "PDX %s > %s" % (action_name, target_action_name)
+
+        pdx = explanation.get_pdx(q_values, action, [target_action])
+        pdx = np.array(pdx).squeeze()
+        reward_names = [r_type for r_type in self.env.get_reward_meanings]
+        sorted_pdx, reward_names = zip(*sorted(zip(pdx, reward_names), key= lambda x: -x[0]))
+
+
+        pdx_box_opts = dict(
+            title = title,
+            stacked = False,
+            legend = reward_names
+        )
+
+        if (action, target_action) not in self.pdx_box:
+            self.pdx_box[(action, target_action)] = self.viz.bar(X=sorted_pdx, opts=pdx_box_opts)
+        else:
+            self.viz.bar(X=sorted_pdx, opts=pdx_box_opts, win=self.pdx_box[(action, target_action)])
+
+        min_pdx = explanation.get_minimum_pdx(sorted_pdx)
+        min_pdx = list(min_pdx) + [0] * (len(sorted_pdx) - len(min_pdx))
+
+        pdx_box_opts = dict(
+            title = "MSE PDX %s > %s" % (action_name, target_action_name),
+            stacked = False,
+            legend = reward_names
+        )
+
+        if (action, target_action) not in self.min_pdx_box:
+            self.min_pdx_box[(action, target_action)] = self.viz.bar(X=min_pdx, opts=pdx_box_opts)
+        else:
+            self.viz.bar(X=min_pdx, opts=pdx_box_opts, win=self.min_pdx_box[(action, target_action)])
+
+
+
+
+    def render_q_values(self, action, combined_q_values, q_values):
+        # TODO clean up this mess
         info_text_box = None
         info_box_opts = dict(title="Info Box")
         q_box = None
@@ -312,35 +417,11 @@ class DecomposedQTaskRunner(BaseTaskRunner):
             self.env.get_action_meanings[action]) + ')'
 
         if self.q_box is None:
-            self.q_box = self.viz.bar(X=cominded_q_values.data.numpy()[0], opts=q_box_opts)
+            self.q_box = self.viz.bar(X=combined_q_values.data.numpy()[0], opts=q_box_opts)
         else:
-            self.viz.bar(X=cominded_q_values.data.numpy()[0], opts=q_box_opts, win=self.q_box)
+            self.viz.bar(X=combined_q_values.data.numpy()[0], opts=q_box_opts, win=self.q_box)
 
         if self.decomposed_q_box is None:
             self.decomposed_q_box = self.viz.bar(X=q_values.T, opts=decomposed_q_box_opts)
         else:
             self.viz.bar(X=q_values.T, opts=decomposed_q_box_opts, win=self.decomposed_q_box)
-
-        pdx_box_opts['rownames'] = [
-            '(' + self.env.get_action_meanings[action] + ',' + self.env.get_action_meanings[i] + ')'
-            for i in range(self.env.action_space) if i != action]
-
-        if len(pdx_box_opts['rownames']) == 1:
-            pdx_box_opts['title'] = pdx_box_title + '    ' + pdx_box_opts['rownames'][0]
-            cont_pdx_box_opts['title'] = pdx_contribution_box_title + '   ' + pdx_box_opts['rownames'][0]
-            pdx_box_opts.pop('rownames')
-        else:
-            cont_pdx_box_opts['rownames'] = pdx_box_opts['rownames']
-
-        _target_actions = [j for j in range(self.env.action_space) if j != action]
-        pdx, contribute = explaination.get_pdx(q_values, action, _target_actions)
-
-        if self.pdx_box is None:
-            self.pdx_box = self.viz.bar(X=np.array(pdx).T, opts=pdx_box_opts)
-        else:
-            self.viz.bar(X=np.array(pdx).T, opts=pdx_box_opts, win=self.pdx_box)
-
-        if self.pdx_contribution_box is None:
-            self.pdx_contribution_box = self.viz.bar(X=np.array(contribute).T, opts=cont_pdx_box_opts)
-        else:
-            self.viz.bar(X=np.array(contribute).T, opts=cont_pdx_box_opts, win=self.pdx_contribution_box)
