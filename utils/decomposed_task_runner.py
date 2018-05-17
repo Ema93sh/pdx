@@ -265,7 +265,7 @@ class DecomposedQTaskRunner(BaseTaskRunner):
                 for target_action in target_actions:
                     pdx = np.array(explanation.get_pdx(q_values, action, [target_action])).squeeze()
                     pdx = sorted(pdx, key = lambda x: -x)
-                    mse_pdx = explanation.get_minimum_pdx(pdx)
+                    mse_pdx = explanation.get_mse(pdx)
                     n = len(mse_pdx)
                     state_info = {
                                   "agent_location" : self.env.agent_location,
@@ -323,6 +323,9 @@ class DecomposedQTaskRunner(BaseTaskRunner):
     def render_mse_pdx(self, mse_summaries):
         data = np.array(list(map(lambda x: len(mse_summaries[x]), sorted(mse_summaries.keys()))))
         x = sorted(mse_summaries.keys())
+        if len(data) < 2:
+            return
+            
         mse_pdx_box_opts = dict(
             title = "Number of MSE PDX",
             stacked = False,
@@ -365,7 +368,7 @@ class DecomposedQTaskRunner(BaseTaskRunner):
         else:
             self.viz.bar(X=sorted_pdx, opts=pdx_box_opts, win=self.pdx_box[(action, target_action)])
 
-        min_pdx = explanation.get_minimum_pdx(sorted_pdx)
+        min_pdx = explanation.get_mse(sorted_pdx)
         min_pdx = list(min_pdx) + [0] * (len(sorted_pdx) - len(min_pdx))
 
         pdx_box_opts = dict(

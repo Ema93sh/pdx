@@ -123,10 +123,12 @@ class TreasureHunter(object):
         opts = dict(title = title, width = 360, height = 350)
         lightning_probability = np.array(self.map.get_all_lightning_probability()[::-1])
 
+        heatmap_opts = dict(xtick = False, ytick = False, ytickmin = 0, ytickmax = 0)
+
         if self.heatmap_window is None:
-            self.heatmap_window = self.vis.heatmap(lightning_probability)
+            self.heatmap_window = self.vis.heatmap(lightning_probability, opts = heatmap_opts)
         else:
-            self.vis.heatmap(lightning_probability, win = self.heatmap_window)
+            self.vis.heatmap(lightning_probability, win = self.heatmap_window, opts = heatmap_opts)
 
 
         if self.image_window is None:

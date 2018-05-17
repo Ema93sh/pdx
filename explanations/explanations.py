@@ -32,15 +32,16 @@ class Explanation(object):
                for r in range(len(q_values))]
         return pdx
 
-    def get_minimum_pdx(self, pdx):
+    def get_mse(self, pdx):
         sorted = all(pdx[i] >= pdx[i+1] for i in range(len(pdx)-1))
         if not sorted:
             raise "The pdx should be sorted in decending order!!!!!"
-
+        positive_pdx = [pdx[i] for i in range(len(pdx)) if pdx[i] > 0]
+        negative_pdx = [pdx[i] for i in range(len(pdx)) if pdx[i] < 0]
 
         for i in range(len(pdx)):
-            if sum(pdx[:i]) > sum(pdx[i:]):
-                return pdx[:i]
+            if sum(positive_pdx[:i]) > abs(sum(negative_pdx)):
+                return positive_pdx[:i]
         return pdx
 
 
